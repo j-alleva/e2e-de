@@ -1,0 +1,38 @@
+# --- Python Essentials ---
+__pycache__/
+*.py[cod]
+*$py.class
+.venv/
+venv/
+.env
+.pytest_cache/
+
+# --- Data & Large Files (CRITICAL for DE) ---
+# This prevents accidentally pushing huge local datasets
+*.csv
+*.parquet
+*.jsonl
+*.db
+*.sqlite
+data/
+outputs/
+
+# --- Airflow & Orchestration ---
+# Airflow creates local logs and process IDs you don't want in Git
+airflow/logs/
+airflow/airflow.db
+airflow/airflow.cfg
+airflow/unittests.cfg
+
+# --- dbt (Data Build Tool) ---
+# dbt compiles a lot of "noise" that doesn't belong in Git
+dbt/de_dbt/target/
+dbt/de_dbt/dbt_modules/
+dbt/de_dbt/dbt_packages/
+dbt/de_dbt/logs/
+
+# --- IDE & System Files ---
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
