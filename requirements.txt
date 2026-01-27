@@ -1,0 +1,17 @@
+# Data Processing & Storage
+pandas
+pyarrow
+fastparquet
+requests
+
+# Environment & Config
+python-dotenv
+
+# Database & S3 (Early Prep)
+psycopg2-binary
+boto3
+
+# Code Quality (For your Week 4 CI/CD)
+pytest
+black
+flake8
