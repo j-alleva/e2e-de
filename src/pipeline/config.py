@@ -21,15 +21,36 @@ class Project_Config:
     Configuration class for accessing of API and ENV variables
     Contains validation function
     """
-
+    LOCATION_LOOKUP = {
+        "Boston" : {"latitude": 42.3601, "longitude": -71.0589}
+    }
     class Paths:
         #access data lake layer variables
         LOCAL_BRONZE = os.getenv("LOCAL_BRONZE_PATH")
         LOCAL_SILVER = os.getenv("LOCAL_SILVER_PATH")
-
+        
+        @classmethod
+        def bronze_path(cls, source: str, run_date: str, location:str = None) -> str:
+            path = f"{cls.LOCAL_BRONZE}/source={source}/run_date={run_date}"
+            if location:
+                path += f"/location={location}"
+            return path
+        
+        @classmethod
+        def silver_path(cls, source: str, run_date: str, location:str = None) -> str:
+            path = f"{cls.LOCAL_SILVER}/source={source}/run_date={run_date}"
+            if location:
+                path += f"/location={location}"
+            return path
+        
     class API:
         #access api url variable
-        OPEN_METEO = os.getenv("OPEN_METEO_URL")
+        OPEN_METEO_URL_TEMPLATE = os.getenv("OPEN_METEO_URL_TEMPLATE")
+
+        @classmethod
+        def get_open_meteo_url(cls,location : str) -> str:
+            coords = Project_Config.LOCATION_LOOKUP[location]
+            return cls.OPEN_METEO_URL_TEMPLATE.format(lat=coords["latitude"],lon=coords["longitude"])
 
     @classmethod
     def validate(cls):
@@ -39,7 +60,7 @@ class Project_Config:
         validateCheck = [
             ("LOCAL_BRONZE_PATH",cls.Paths.LOCAL_BRONZE),
             ("LOCAL_SILVER_PATH",cls.Paths.LOCAL_SILVER),
-            ("OPEN_METEO_URL",cls.API.OPEN_METEO)
+            ("OPEN_METEO_URL_TEMPLATE",cls.API.OPEN_METEO_URL_TEMPLATE)
         ]
 
         missing = []
@@ -54,16 +75,6 @@ class Project_Config:
         
         print("All critical environment variables are present!")
 
-if __name__ == "__main__":
-
-    try:
-        Project_Config.validate()
-        print(f"Bronze Path: {Project_Config.Paths.LOCAL_BRONZE}")
-        print(f"Silver Path: {Project_Config.Paths.LOCAL_SILVER}")
-        print(f"API Url: {Project_Config.API.OPEN_METEO}")
-
-    except ValueError as e:
-        print(f"Configuration Error: {e}")
 
 
 

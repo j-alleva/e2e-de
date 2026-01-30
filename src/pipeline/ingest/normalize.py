@@ -52,7 +52,7 @@ def _normalize_data(data : dict) -> pd.DataFrame:
     return df
 
 #saves normalized data to silver path
-def _save_to_silver(df : pd.DataFrame,run_date : str) -> str:
+def _save_to_silver(df : pd.DataFrame,run_date : str, location: str, source: str) -> str:
 
     #quick validation double check
 
@@ -60,7 +60,7 @@ def _save_to_silver(df : pd.DataFrame,run_date : str) -> str:
         raise ValueError("Normalized DataFrame is empty!")
     #create dir_path and file_path
 
-    dir_path = f"{Project_Config.Paths.LOCAL_SILVER}/source=openmeteo/run_date={run_date}"
+    dir_path = Project_Config.Paths.silver_path(source, run_date, location)
 
     file_path = f"{dir_path}/weather_data.parquet"
     #create directory if doesn't exist
@@ -73,7 +73,7 @@ def _save_to_silver(df : pd.DataFrame,run_date : str) -> str:
     return file_path
 
 #orchestration
-def run_normalize(run_date : str):
+def run_normalize(run_date : str, location : str = "Boston", source: str = "openmeteo"):
     """
     Orchestrator for normalization.
     Raises exception if normalization fails
@@ -82,7 +82,7 @@ def run_normalize(run_date : str):
 
     #identify input path
     try:
-        input_path = f"{Project_Config.Paths.LOCAL_BRONZE}/source=openmeteo/run_date={run_date}/raw.json"
+        input_path = f"{Project_Config.Paths.bronze_path(source, run_date, location)}/raw.json"
 
         #load bronze data
 
@@ -91,13 +91,9 @@ def run_normalize(run_date : str):
         #normalize bronze data
 
         df = _normalize_data(raw_data)
-
-        #save normalized data to silver
-
-        _save_to_silver(df,run_date)
         
         #establish output_path for terminal
-        output_path = _save_to_silver(df,run_date)
+        output_path = _save_to_silver(df,run_date,location,source)
         #confirmation messages
         print (f"JSON data from {run_date} succsessfully normalized and saved to {output_path}")
         print (f"Shape of data: {df.shape}")
@@ -108,12 +104,7 @@ def run_normalize(run_date : str):
         print (f"Normalization failed {e}")
         raise e
     
-#script entry point
-if __name__ == "__main__":
 
-    valid_date = "2026-01-25"
-
-    run_normalize(valid_date)
 
 
 

@@ -107,11 +107,3 @@ def validate_bronze_file(file_path : str) -> bool:
 
         raise e
     
-# Script Entry point
-
-if __name__ == "__main__":
-    #provides valid_path for data validation
-    valid_path = "data/bronze/source=openmeteo/run_date=2026-01-24/raw.json"
-
-    #executes helper functions and completes validation
-    validate_bronze_file(valid_path)

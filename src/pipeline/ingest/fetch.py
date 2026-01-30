@@ -17,13 +17,13 @@ from src.pipeline.config import Project_Config
 def _build_url(location: str, run_date :str ) -> str:
 
     #extracts api url from config file
-    OPEN_METEO_V1 = Project_Config.API.OPEN_METEO
+    base_url = Project_Config.API.get_open_meteo_url(location)
 
     #adjust url for our specfic pull date, avoids open meteo default 7 day pull
 
-    OPEN_METEO_URL = f"{OPEN_METEO_V1}&start_date={run_date}&end_date={run_date}"
+    url = f"{base_url}&start_date={run_date}&end_date={run_date}"
 
-    return OPEN_METEO_URL
+    return url
 
 def _fetch_from_api(url:str) -> str:
 
@@ -36,14 +36,14 @@ def _fetch_from_api(url:str) -> str:
     #returns request as raw json
     return response.json()
 
-def _save_to_bronze(data:dict, run_date:str, location:str) -> str:
+def _save_to_bronze(data:dict, run_date:str, location:str,source:str) -> str:
 
     #adds metadata of time and source
     data["ingestion_timestamp"] = datetime.now(timezone.utc).isoformat()
-    data["source"] = "openmeteo"
+    data["source"] = source
 
     #defines file paths
-    dir_path = f"{Project_Config.Paths.LOCAL_BRONZE}/source=openmeteo/run_date={run_date}"
+    dir_path = Project_Config.Paths.bronze_path(source, run_date, location)
     file_path = f"{dir_path}/raw.json"
 
     #creates directories
@@ -56,7 +56,7 @@ def _save_to_bronze(data:dict, run_date:str, location:str) -> str:
     #return filepath
     return file_path
 
-def _run_fetch(run_date:str, location:str = "Boston"):
+def _run_fetch(run_date:str, location:str,source:str):
 
     try:
         #pulls url from config
@@ -66,7 +66,7 @@ def _run_fetch(run_date:str, location:str = "Boston"):
         data = _fetch_from_api(url)
 
         #saves the raw JSON to our chosen bronze directory
-        file_path = _save_to_bronze(data, run_date, location)
+        file_path = _save_to_bronze(data, run_date, location,source)
 
         #success check
         print (f"Success! Raw JSON data written to {file_path}")
@@ -77,14 +77,7 @@ def _run_fetch(run_date:str, location:str = "Boston"):
         print(f"X! Error during fetch: {e}")
         raise e
     
-#script entry point
 
-if __name__ == "__main__":
-
-    #chosen date for example, can be adjusted within API capabilites
-    valid_date = "2026-01-25"
-
-    _run_fetch(valid_date)
 
 
 
