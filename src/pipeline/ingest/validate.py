@@ -87,11 +87,19 @@ def _validate_data_quality(data:dict) -> bool:
         raise ValueError(f"Timestamp is not parseable: {e}")
     
     #ensure hourly data contains no duplicates
-    unique_count = len(set(hourly["time"]))
-    if unique_count != record_count:
-        duplicate_count = record_count - unique_count
-        logger.error(f"Found {duplicate_count} duplicate timestamps")
-        raise ValueError(f"Hourly data contains {duplicate_count} duplicates")
+    latitude = data['latitude']
+    longitude = data['longitude']
+    timestamps = hourly['time']
+
+    natural_keys = [(latitude, longitude, ts) for ts in timestamps]
+    unique_keys = set(natural_keys)
+
+    if len(unique_keys) != len(natural_keys):
+        duplicate_count = len(natural_keys) - len(unique_keys)
+        logger.error(f"Found {duplicate_count} duplicate records on natural key (location + timestamp)")
+        raise ValueError(f"Data contains {duplicate_count} duplicates on natural key")
+    
+    logger.debug(f"Natural key check passed: {len(natural_keys)} unique records")
     
     logger.info(f"Data quality validation passed ({record_count} records, 0 duplicates)")
     return True
