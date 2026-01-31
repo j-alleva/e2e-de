@@ -1,14 +1,11 @@
 
 """
+Data validation module for bronze layer ingestion.
 
-validate.py: Ensures raw JSON data passed basic validation checks
-
-Capabilities 
-
-1. Schema validation: Ensure JSON data contains the correct requried top level keys
-2. Data quality: Checks if arrays are empty, if timestamps are parseable
-3. Integrity: Ensures lack of duplicates 
-
+Validates raw JSON data from API before normalization:
+- Schema validation (required keys present)
+- Data quality checks (non-empty, parseable timestamps)
+- Duplicate detection on natural key (location + timestamp)
 """
 
 import json
@@ -19,15 +16,25 @@ from src.pipeline.config import Project_Config
 
 logger = logging.getLogger(__name__)
 
-#loads raw data
-def _load_json(file_path:str) -> dict:
 
-    #Ensures file path exists, raises FileNotFoundError
+def _load_json(file_path:str) -> dict:
+    """
+    Load JSON data from file.
+    
+    Args:
+        file_path: Path to JSON file
+    
+    Returns:
+        Parsed JSON data as dictionary
+    
+    Raises:
+        FileNotFoundError: If file does not exist
+    """
+    
     if not os.path.exists(file_path):
         logger.error(f"File not found: {file_path}")
-        raise FileNotFoundError(f"File not found")
+        raise FileNotFoundError(f"File not found: {file_path}")
     
-    #Pulls json data from the file path, and returns
     with open(file_path, "r") as f:
 
         data = json.load(f)
@@ -35,10 +42,20 @@ def _load_json(file_path:str) -> dict:
     logger.debug(f"Loaded JSON from: {file_path}")
     return data
 
-#validates required keys
 def _validate_schema(data:dict) -> bool:
+    """
+    Validate presence of required top-level keys.
+    
+    Args:
+        data: JSON data dictionary
+    
+    Returns:
+        True if all required keys present
+    
+    Raises:
+        ValueError: If any required keys are missing
+    """
 
-    #list of required top level keys for open meteo API pull
     REQUIRED_KEYS = [
         "latitude",
         "longitude",
@@ -51,7 +68,6 @@ def _validate_schema(data:dict) -> bool:
         "hourly"
     ]
 
-    #ensures data has all required keys, raises ValueError if top level key is missing
     missing_keys = []
     for key in REQUIRED_KEYS:
         if key not in data:
@@ -64,13 +80,22 @@ def _validate_schema(data:dict) -> bool:
     logger.info(f"Schema validation completed ({len(REQUIRED_KEYS)} keys validated)")
     return True
 
-
 def _validate_data_quality(data:dict) -> bool:
-
-    #pulls hourly dataset
+    """
+    Validate data quality: non-empty, parseable timestamps, no duplicates.
+    
+    Args:
+        data: JSON data dictionary
+    
+    Returns:
+        True if all quality checks pass
+    
+    Raises:
+        ValueError: If data is empty, timestamps unparseable, or duplicates found
+    """
     hourly = data["hourly"]
 
-    #ensure hourly data is not empty
+    # Check hourly data is not empty
     if not hourly.get("time") or len(hourly["time"]) == 0:
         logger.error("Hourly data is empty")
         raise ValueError(f"Dataset is empty")
@@ -78,7 +103,7 @@ def _validate_data_quality(data:dict) -> bool:
     record_count = len(hourly["time"])
     logger.debug(f"Validating {record_count} records")
     
-    #ensure timestamps are parseable
+    # Validate timestamp format
     try:
         datetime.fromisoformat(hourly["time"][0])
         logger.debug(f"Timestamp format validated: {hourly['time'][0]}")
@@ -86,7 +111,7 @@ def _validate_data_quality(data:dict) -> bool:
         logger.error(f"Timestamp not parseable: {hourly['time'][0]}")
         raise ValueError(f"Timestamp is not parseable: {e}")
     
-    #ensure hourly data contains no duplicates
+    # Check for duplicates on natural key (location + timestamp)
     latitude = data['latitude']
     longitude = data['longitude']
     timestamps = hourly['time']
@@ -105,36 +130,31 @@ def _validate_data_quality(data:dict) -> bool:
     return True
     
 def validate_bronze_file(file_path : str) -> bool:
-
     """
-    Orchestration for validation
-
-    1. Loads JSON File
-    2. Checks validitiy of schema
-    3. Checks quality of schema; ensures not empty and lack of duplicates
-
-    Returns error/success message based on validation process
-
+    Orchestrate full validation: load, schema check, quality check.
+    
+    Args:
+        file_path: Path to bronze JSON file
+    
+    Returns:
+        True if validation passes
+    
+    Raises:
+        FileNotFoundError: If file does not exist
+        ValueError: If validation fails (schema or quality issues)
     """
     try:
         logger.info(f"Starting validation: {file_path}")
 
-        #loads raw JSON data
+        
         data = _load_json(file_path)
-
-        #validates schema
-
         _validate_schema(data)
-
-        #validates data quality
-
         _validate_data_quality(data)
 
         logger.info(f"Data successfully passed validation! Suitable for normalization")
         return True
 
-    #raises error if validation failed at any point
-    except Exception as e:
+    except Exception:
 
         raise 
     
