@@ -72,7 +72,7 @@ python -m src.pipeline.run --run-date 2026-01-26 --location Boston
 
 Run for different locations (currently not supported, but can be added):
 ```bash
-python -m src.pipeline.run --run-date 2026-01-31 --location "New York"
+python -m src.pipeline.run --run-date 2026-01-31 --location New York
 python -m src.pipeline.run --run-date 2026-01-31 --location Chicago
 ```
 
