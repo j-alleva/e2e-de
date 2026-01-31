@@ -11,9 +11,12 @@ Capabilities
 
 #import os and dotenv library, and import load_dotenv for access of environment variables
 import os
+import logging
 from dotenv import load_dotenv
 
 load_dotenv()
+
+logger = logging.getLogger(__name__)
 
 class Project_Config:
 
@@ -34,6 +37,7 @@ class Project_Config:
             path = f"{cls.LOCAL_BRONZE}/source={source}/run_date={run_date}"
             if location:
                 path += f"/location={location}"
+            logger.debug(f"Generated bronze path: {path}")
             return path
         
         @classmethod
@@ -41,6 +45,7 @@ class Project_Config:
             path = f"{cls.LOCAL_SILVER}/source={source}/run_date={run_date}"
             if location:
                 path += f"/location={location}"
+            logger.debug(f"Generated silver path: {path}")
             return path
         
     class API:
@@ -50,7 +55,9 @@ class Project_Config:
         @classmethod
         def get_open_meteo_url(cls,location : str) -> str:
             coords = Project_Config.LOCATION_LOOKUP[location]
-            return cls.OPEN_METEO_URL_TEMPLATE.format(lat=coords["latitude"],lon=coords["longitude"])
+            url = cls.OPEN_METEO_URL_TEMPLATE.format(lat=coords["latitude"],lon=coords["longitude"])
+            logger.debug(f"Generated API URL for {location}: {url}")
+            return url
 
     @classmethod
     def validate(cls):
@@ -69,11 +76,12 @@ class Project_Config:
                 missing.append(name)
 
         if missing:
+            logger.error(f"Missing environment variables: {', '.join(missing)}")
             raise ValueError(
                 f"Environment Variables are missing: {', '.join(missing)}. Please check your env file"
             )
         
-        print("All critical environment variables are present!")
+        logger.info("All critical environment variables are present!")
 
 
 

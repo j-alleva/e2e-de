@@ -10,11 +10,13 @@ Usage:
 
 import argparse
 import sys
+import logging
 from src.pipeline.ingest.fetch import _run_fetch
 from src.pipeline.ingest.validate import validate_bronze_file
 from src.pipeline.ingest.normalize import run_normalize
 from src.pipeline.config import Project_Config
 
+logger = logging.getLogger(__name__)
 
 def run_pipeline(run_date: str, location: str = "Boston", source: str = "openmeteo"):
     """
@@ -25,39 +27,50 @@ def run_pipeline(run_date: str, location: str = "Boston", source: str = "openmet
         location: Location name (e.g., Boston)
         source: Data source identifier (default: openmeteo)
     """
-    print(f"\n{'='*60}")
-    print(f"Starting Pipeline: {source} | {location} | {run_date}")
-    print(f"{'='*60}\n")
+    logger.info(f"{'='*60}")
+    logger.info(f"Starting Pipeline: {source} | {location} | {run_date}")
+    logger.info(f"{'='*60}")
     
     try:
         # Step 1: Fetch raw data
-        print("[1/3] FETCH: Retrieving data from API...")
+        logger.info("[1/3] FETCH: Retrieving data from API...")
         _run_fetch(run_date, location, source)
         
         # Step 2: Validate bronze data
-        print("\n[2/3] VALIDATE: Checking data quality...")
+        logger.info("[2/3] VALIDATE: Checking data quality...")
         bronze_path = f"{Project_Config.Paths.bronze_path(source, run_date, location)}/raw.json"
         validate_bronze_file(bronze_path)
         
         # Step 3: Normalize to silver
-        print("\n[3/3] NORMALIZE: Transforming to silver layer...")
+        logger.info("[3/3] NORMALIZE: Transforming to silver layer...")
         run_normalize(run_date, location, source)
         
-        print(f"\n{'='*60}")
-        print(f"✅ Pipeline completed successfully!")
-        print(f"{'='*60}\n")
+        logger.info(f"{'='*60}")
+        logger.info(f"Pipeline completed successfully!")
+        logger.info(f"{'='*60}")
         
         return True
         
     except Exception as e:
-        print(f"\n{'='*60}")
-        print(f"❌ Pipeline failed: {e}")
-        print(f"{'='*60}\n")
+        logger.error(f"{'='*60}")
+        logger.error(f"Pipeline failed: {e}")
+        logger.error(f"{'='*60}")
         sys.exit(1)
 
 
 def main():
+
     """Parse CLI arguments and run the pipeline."""
+    logging.basicConfig(
+        level=logging.INFO,
+        format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+        handlers=[
+            logging.StreamHandler(),
+            logging.FileHandler('pipeline.log')
+        ]
+    )
+
+    
     parser = argparse.ArgumentParser(
         description="Run the data ingestion pipeline",
         formatter_class=argparse.RawDescriptionHelpFormatter,
@@ -88,6 +101,8 @@ Examples:
     
     args = parser.parse_args()
     
+    logger.info(f"CLI arguments parsed: run_date={args.run_date}, location={args.location}, source={args.source}")
+
     # Validate config before running
     Project_Config.validate()
     
