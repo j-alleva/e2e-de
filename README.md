@@ -3,6 +3,11 @@ End-to-end data engineering platform demonstrating production-grade ingestion, t
 
 **Status:** Block 1 Complete (Python Ingestion + Local Storage)
 
+### 🛠 Tech Stack
+- **Languages:** Python (Pandas, PyArrow), SQL
+- **Tools:** Docker, Git/GitHub, FastParquet
+- **Infrastructure:** Postgres (Local), AWS (Planned), Snowflake (Planned)
+
 --- 
 
 ## Block 1: Python Ingestion Pipeline
