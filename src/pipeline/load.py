@@ -73,8 +73,13 @@ def run_load(run_date: str, location: str = "Boston", source: str = "openmeteo")
     logger.info("Load completed successfully.")
 
 if __name__ == "__main__":
+
+    logging.basicConfig(
+        level=logging.INFO,
+        format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+    )
     
-    run_load(run_date="2026-01-25")
+    run_load(run_date="2026-02-01")
 
 
 
