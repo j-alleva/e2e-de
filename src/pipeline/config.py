@@ -15,6 +15,12 @@ Environment Variables Required:
     LOCAL_SILVER_PATH: Base path for cleaned data storage
     OPEN_METEO_URL_TEMPLATE: URL template for Open-Meteo API
 
+Environment Variables Optional (Block 2+):
+    POSTGRES_USER: PostgreSQL username (default: admin)
+    POSTGRES_PASSWORD: PostgreSQL password (default: password)
+    POSTGRES_HOST: PostgreSQL host (default: localhost)
+    POSTGRES_PORT: PostgreSQL port (default: 5432)
+    POSTGRES_DB: PostgreSQL database name (default: warehouse) 
 """
 
 import os
@@ -111,7 +117,29 @@ class Project_Config:
             url = cls.OPEN_METEO_URL_TEMPLATE.format(lat=coords["latitude"],lon=coords["longitude"])
             logger.debug(f"Generated API URL for {location}: {url}")
             return url
+        
+    class Database:
+        """
+        PostgreSQL database connection configuration.
+        """
+        POSTGRES_USER = os.getenv("POSTGRES_USER", "admin")
+        POSTGRES_PASSWORD = os.getenv("POSTGRES_PASSWORD", "password")
+        POSTGRES_HOST = os.getenv("POSTGRES_HOST", "localhost")
+        POSTGRES_PORT = os.getenv("POSTGRES_PORT", "5432")
+        POSTGRES_DB = os.getenv("POSTGRES_DB", "warehouse")
 
+        @classmethod
+        def connection_string(cls) -> str:
+            """
+            Build SQLAlchemy PostgreSQL connection string.
+
+            Returns:
+                Connection string in format: postgresql://user:pass@host:port/database
+            """
+            conn_str = f"postgresql://{cls.POSTGRES_USER}:{cls.POSTGRES_PASSWORD}@{cls.POSTGRES_HOST}:{cls.POSTGRES_PORT}/{cls.POSTGRES_DB}"
+            logger.debug(f"PostgreSQL connection string constructed (password masked)")
+            return conn_str
+        
     @classmethod
     def validate(cls) -> None:
         """
