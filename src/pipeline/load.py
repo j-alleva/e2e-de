@@ -67,7 +67,9 @@ def run_load(run_date: str, location: str = "Boston", source: str = "openmeteo")
     engine = connect_to_postgres()
     
     df = load_silver_data(run_date, location, source)
-    
+    df['location'] = location
+    df['source'] = source
+    df['run_date'] = run_date
     write_to_postgres(df, 'raw_weather', engine)
 
     logger.info("Load completed successfully.")
@@ -78,7 +80,7 @@ if __name__ == "__main__":
         level=logging.INFO,
         format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
     )
-    
+
     run_load(run_date="2026-02-01")
 
 
