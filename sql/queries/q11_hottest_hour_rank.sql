@@ -7,7 +7,7 @@ SELECT
     f.hour,
     f.temperature_2m,
     RANK() OVER (
-        PARTITION BY l.location_name 
+        PARTITION BY l.location_name, d.date_value
         ORDER BY f.temperature_2m DESC
     ) as heat_rank
 FROM fact_weather_hourly f
