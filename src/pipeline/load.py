@@ -1,10 +1,3 @@
-import pandas as pd
-import argparse
-from sqlalchemy import create_engine
-from sqlalchemy.engine import Engine
-import logging
-from src.pipeline.config import Project_Config
-
 """
     CLI entry point for loading silver Parquet data into Postgres staging.
 
@@ -13,6 +6,13 @@ from src.pipeline.config import Project_Config
     Usage:
     python -m src.pipeline.load --run-date 2026-02-01 --location Boston
 """
+
+import pandas as pd
+import argparse
+from sqlalchemy import create_engine
+from sqlalchemy.engine import Engine
+import logging
+from src.pipeline.config import Project_Config
 
 logger = logging.getLogger(__name__)
 
