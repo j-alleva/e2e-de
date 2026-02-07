@@ -2,7 +2,7 @@
 
 End-to-end data engineering platform demonstrating production-grade ingestion, transformation, orchestration, and analytics.
 
-**Status:** Weeks 1-2 Complete | Python Ingestion + Postgres Staging & Analytics
+**Status:** Blocks 1-2 Complete | Python Ingestion + Postgres Staging & Analytics
 
 ### Tech Stack
 
@@ -34,7 +34,7 @@ API --> Dockerized Python Ingestion --> S3 (bronze/silver)
 
 ---
 
-## Week 1: Python Ingestion Pipeline
+## Block 1: Python Ingestion Pipeline
 
 Built a parameterized ingestion job with schema validation and reproducible run-date partitioning; writes raw JSON and cleaned Parquet outputs with logging.
 
@@ -122,7 +122,7 @@ data/
 
 ---
 
-## Week 2: Postgres Staging + SQL Analytics
+## Block 2: Postgres Staging + SQL Analytics
 
 Modeled and queried a weather dataset in a Dockerized Postgres warehouse using a star schema with dimension and fact tables, plus 13 analytical queries demonstrating GROUP BY, JOINs, window functions, CTEs, and rolling aggregates.
 
@@ -309,18 +309,16 @@ make clean                                   # Remove local data lake files
 
 ## Roadmap
 
-- [x] **Week 1** - Python ingestion + cleaning (local bronze/silver data lake)
-- [x] **Week 2** - SQL foundations + star schema modeling (Postgres in Docker)
-- [ ] **Week 3** - AWS S3 data lake layout with IAM + partitioned uploads
-- [ ] **Week 4** - Dockerize ingestion + GitHub Actions CI (lint, test)
-- [ ] **Week 5** - Airflow orchestration (DAG with parameterized run_date, retries, backfills)
-- [ ] **Week 6** - Spark transformations via AWS Glue (silver to gold, partitioned Parquet)
-- [ ] **Week 7** - Snowflake warehouse load (stage + COPY INTO + MERGE for idempotency)
-- [ ] **Week 8** - dbt transformations, tests, and documentation on Snowflake
-- [ ] **Week 9** - Semantic metrics layer (dbt) + end-to-end Airflow DAG
-- [ ] **Week 10** - Streamlit dashboard consuming dbt marts/metrics
-- [ ] **Week 11** - Production hardening, architecture diagram, runbook, cost docs
-- [ ] **Week 12** - Portfolio polish + interview preparation
+- [x] **Block 1** - Python ingestion + cleaning (local bronze/silver data lake)
+- [x] **Block 2** - SQL foundations + star schema modeling (Postgres in Docker)
+- [ ] **Block 3** - AWS S3 data lake layout with IAM + partitioned uploads
+- [ ] **Block 4** - Dockerize ingestion + GitHub Actions CI (lint, test)
+- [ ] **Block 5** - Airflow orchestration (DAG with parameterized run_date, retries, backfills)
+- [ ] **Block 6** - Spark transformations via AWS Glue (silver to gold, partitioned Parquet)
+- [ ] **Block 7** - Snowflake warehouse load (stage + COPY INTO + MERGE for idempotency)
+- [ ] **Block 8** - dbt transformations, tests, and documentation on Snowflake
+- [ ] **Block 9** - Semantic metrics layer (dbt) + end-to-end Airflow DAG
+- [ ] **Block 10** - Streamlit dashboard consuming dbt marts/metrics
 
 ---
 
@@ -328,9 +326,9 @@ make clean                                   # Remove local data lake files
 
 | Milestone | Status |
 |---|---|
-| Week 1: Python Ingestion | Complete |
-| Week 2: Postgres + SQL | Complete |
-| Weeks 3-12 | Planned |
+| Block 1: Python Ingestion | Complete |
+| Block 2: Postgres + SQL | Complete |
+| Blocks 3-10 | Planned |
 
 **Last Updated:** February 2026
 
