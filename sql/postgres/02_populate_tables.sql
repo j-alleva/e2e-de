@@ -51,6 +51,7 @@ FROM raw_weather;
 INSERT INTO fact_weather_hourly (
     date_id, 
     location_id, 
+    hour,
     temperature_2m, 
     relative_humidity_2m, 
     precipitation, 
@@ -60,6 +61,7 @@ INSERT INTO fact_weather_hourly (
 SELECT 
     d.date_id,
     l.location_id,
+    EXTRACT(HOUR FROM r.time) as hour,
     r.temperature_2m,
     r.relative_humidity_2m,
     r.precipitation,

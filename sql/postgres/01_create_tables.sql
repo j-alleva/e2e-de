@@ -68,6 +68,7 @@ CREATE TABLE fact_weather_hourly (
     fact_id SERIAL PRIMARY KEY,
     date_id INT NOT NULL REFERENCES dim_date(date_id),
     location_id INT NOT NULL REFERENCES dim_location(location_id),
+    hour INT NOT NULL,
     temperature_2m FLOAT,
     relative_humidity_2m INT,
     precipitation FLOAT,
