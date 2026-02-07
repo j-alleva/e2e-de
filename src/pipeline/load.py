@@ -1,8 +1,18 @@
 import pandas as pd
+import argparse
 from sqlalchemy import create_engine
 from sqlalchemy.engine import Engine
 import logging
 from src.pipeline.config import Project_Config
+
+"""
+    CLI entry point for loading silver Parquet data into Postgres staging.
+
+    Orchestrates: Read silver Parquet -> Connect to Postgres -> Write to raw_weather table.
+
+    Usage:
+    python -m src.pipeline.load --run-date 2026-02-01 --location Boston
+"""
 
 logger = logging.getLogger(__name__)
 
@@ -74,14 +84,39 @@ def run_load(run_date: str, location: str = "Boston", source: str = "openmeteo")
 
     logger.info("Load completed successfully.")
 
-if __name__ == "__main__":
-
+def main():
+    """
+    CLI entry point. Parses arguments and orchestrates the load process.
+    """
     logging.basicConfig(
         level=logging.INFO,
         format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
     )
+    
+    parser = argparse.ArgumentParser(description="Load silver Parquet data into Postgres staging")
+    parser.add_argument(
+        "--run-date",
+        required=True,
+        help="Date to process in YYYY-MM-DD format"
+    )
+    parser.add_argument(
+        "--location",
+        default="Boston",
+        help="Location name (default: Boston)"
+    )
+    parser.add_argument(
+        "--source",
+        default="openmeteo",
+        help="Data source identifier (default: openmeteo)"
+    )
+    
+    args = parser.parse_args()
+    logger.info(f"CLI arguments parsed: run_date={args.run_date}, location={args.location}, source={args.source}")
+    Project_Config.validate()
+    run_load(args.run_date, args.location, args.source)
 
-    run_load(run_date="2026-02-01")
+if __name__ == "__main__":
+    main()
 
 
 
