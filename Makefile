@@ -1,21 +1,32 @@
-.PHONY: help ingest clean test lint
+.PHONY: help up down ingest schema load warehouse queries clean
 
-help:  ## Show available commands
-    @echo "Available commands:"
-    @echo "  make ingest RUN_DATE=YYYY-MM-DD LOCATION=Boston  - Run ingestion pipeline"
-    @echo "  make clean                                         - Remove data directories"
-    @echo "  make test                                          - Run tests (placeholder)"
-    @echo "  make lint                                          - Run linter (placeholder)"
+help:
+	@echo "Available: up, down, ingest, schema, load, warehouse, queries, clean"
 
-ingest:  ## Run the ingestion pipeline
-    @python -m src.pipeline.run --run-date $(RUN_DATE) --location $(LOCATION)
+up:  ## Start Docker
+	@docker compose up -d
 
-clean:  ## Remove bronze and silver data
-    @rm -rf data/bronze data/silver
-    @echo "Cleaned data directories"
+down: ## Stop Docker
+	@docker compose down
 
-test:  ## Run tests (placeholder for future)
-    @echo "Tests not yet implemented"
+ingest: ## Run Python Pipeline (Extract + Load Raw)
+	@python -m src.pipeline.run --run-date $(RUN_DATE) --location $(LOCATION)
 
-lint:  ## Run linter (placeholder for future)
-    @echo "Linting not yet configured"
+schema: ## Create Postgres schema (dimensions, facts, staging)
+	@docker exec -i de_postgres psql -U admin -d warehouse < sql/postgres/01_create_tables.sql
+
+load: schema ## Load silver Parquet into raw_weather
+	@python -m src.pipeline.load --run-date $(RUN_DATE) --location $(LOCATION)
+
+warehouse: ## Populate fact and dimension tables from raw_weather
+	@echo "Populating Fact/Dims..."
+	@docker exec -i de_postgres psql -U admin -d warehouse < sql/postgres/02_populate_tables.sql
+
+queries: ## Run All Analytics
+	@for f in sql/queries/*.sql; do \
+		echo "Running $$f..."; \
+		docker exec -i de_postgres psql -U admin -d warehouse < $$f; \
+	done
+
+clean:
+	@rm -rf data/bronze data/silver
