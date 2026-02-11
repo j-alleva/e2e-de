@@ -1,5 +1,6 @@
 import boto3
 import logging
+import os
 from botocore.exceptions import ClientError
 from src.pipeline.config import Project_Config
 from dotenv import load_dotenv
@@ -31,6 +32,15 @@ class S3Client:
         Returns:
             True if upload was successful, False otherwise.
         """
+
+        # If no key provided, mirror local path
+        # Always force forward slashes
+        if s3_key is None:
+            s3_key = local_path.replace(os.sep,"/")
+            # logger debug?
+        else:
+            s3_key = s3_key.replace(os.sep,"/")
+            # logger debug?
 
         if check_exists:
             try:
