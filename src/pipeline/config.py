@@ -47,6 +47,8 @@ class Project_Config:
     LOCATION_LOOKUP = {
         "Boston" : {"latitude": 42.3601, "longitude": -71.0589}
     }
+    AWS_BUCKET_NAME = os.getenv("AWS_BUCKET_NAME")
+    AWS_REGION = os.getenv("AWS_REGION")
 
     class Paths:
         """
@@ -152,7 +154,9 @@ class Project_Config:
         validateCheck = [
             ("LOCAL_BRONZE_PATH",cls.Paths.LOCAL_BRONZE),
             ("LOCAL_SILVER_PATH",cls.Paths.LOCAL_SILVER),
-            ("OPEN_METEO_URL_TEMPLATE",cls.API.OPEN_METEO_URL_TEMPLATE)
+            ("OPEN_METEO_URL_TEMPLATE",cls.API.OPEN_METEO_URL_TEMPLATE),
+            ("AWS_BUCKET_NAME", cls.AWS_BUCKET_NAME),
+            ("AWS_REGION",cls.AWS_REGION)
         ]
 
         missing = []
