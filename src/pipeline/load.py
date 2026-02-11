@@ -13,6 +13,7 @@ from sqlalchemy import create_engine
 from sqlalchemy.engine import Engine
 import logging
 from src.pipeline.config import Project_Config
+from src.pipeline.io.local import read_parquet_local
 
 logger = logging.getLogger(__name__)
 
@@ -47,7 +48,7 @@ def load_silver_data(run_date: str, location: str, source: str) -> pd.DataFrame:
     file_path = f"{silver_path}/weather_data.parquet"
 
     logger.info(f"Loading silver data from: {file_path}")
-    df = pd.read_parquet(file_path)
+    df = read_parquet_local(file_path)
 
     record_count = len(df)
     logger.info(f"Loaded {record_count} records from silver layer")

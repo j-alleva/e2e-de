@@ -13,34 +13,9 @@ import os
 import logging 
 from datetime import datetime
 from src.pipeline.config import Project_Config
+from src.pipeline.io.local import read_json_local
 
 logger = logging.getLogger(__name__)
-
-
-def _load_json(file_path:str) -> dict:
-    """
-    Load JSON data from file.
-    
-    Args:
-        file_path: Path to JSON file
-    
-    Returns:
-        Parsed JSON data as dictionary
-    
-    Raises:
-        FileNotFoundError: If file does not exist
-    """
-    
-    if not os.path.exists(file_path):
-        logger.error(f"File not found: {file_path}")
-        raise FileNotFoundError(f"File not found: {file_path}")
-    
-    with open(file_path, "r") as f:
-
-        data = json.load(f)
-
-    logger.debug(f"Loaded JSON from: {file_path}")
-    return data
 
 def _validate_schema(data:dict) -> bool:
     """
@@ -147,7 +122,7 @@ def validate_bronze_file(file_path : str) -> bool:
         logger.info(f"Starting validation: {file_path}")
 
         
-        data = _load_json(file_path)
+        data = read_json_local(file_path)
         _validate_schema(data)
         _validate_data_quality(data)
 

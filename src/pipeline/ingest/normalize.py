@@ -9,17 +9,16 @@ Transforms validated bronze JSON into cleaned Parquet format:
 - Saves as partitioned Parquet to silver layer
 """
 
-import os
-import json
 import logging
 import pandas as pd
 from src.pipeline.config import Project_Config
+from src.pipeline.io.local import save_parquet_local, read_json_local
 
 logger = logging.getLogger(__name__)
 
 def _load_bronze_data(file_path : str) -> dict:
     """
-    Load validated bronze JSON data.
+    Load validated bronze JSON data using centralized I/O.
     
     Args:
         file_path: Path to bronze JSON file
@@ -27,13 +26,7 @@ def _load_bronze_data(file_path : str) -> dict:
     Returns:
         Parsed JSON data as dictionary
     """
-    logger.debug(f"Loading bronze data from: {file_path}")
-    
-    with open (file_path, "r") as f:
-        data = json.load(f)
-
-    logger.debug(f"Bronze data loaded successfully")
-    return data
+    return read_json_local(file_path)
 
 
 def _normalize_data(data : dict) -> pd.DataFrame:
@@ -67,7 +60,7 @@ def _normalize_data(data : dict) -> pd.DataFrame:
 
 def _save_to_silver(df : pd.DataFrame,run_date : str, location: str, source: str) -> str:
     """
-    Save normalized DataFrame to silver layer as Parquet.
+    Save normalized DataFrame to silver layer as Parquet using centralized I/O.
     
     Args:
         df: Normalized DataFrame
@@ -81,21 +74,16 @@ def _save_to_silver(df : pd.DataFrame,run_date : str, location: str, source: str
     Raises:
         ValueError: If DataFrame is empty
     """
-    # Ensure DataFrame is not empty
     if df.empty:
         logger.error("Normalized DataFrame is empty!")
         raise ValueError("Normalized DataFrame is empty!")
     
-    # Generate partitioned path
+    # Generate partitioned path via Config
     dir_path = Project_Config.Paths.silver_path(source, run_date, location)
     file_path = f"{dir_path}/weather_data.parquet"
 
-    # Create directory if not already existing and save
-    os.makedirs(dir_path, exist_ok = True)
-    logger.debug(f"Created directory: {dir_path}")
-
-    df.to_parquet(file_path, index=False)
-    logger.info(f"Wrote Parquet to: {file_path}")
+    # Use the local I/O module
+    save_parquet_local(df, file_path)
 
     return file_path
 
@@ -116,8 +104,6 @@ def run_normalize(run_date : str, location : str = "Boston", source: str = "open
         ValueError: If DataFrame is empty or data invalid
         Exception: For other unexpected errors during normalization
     """
-
-    
     try:
         logger.info(f"Starting normalization: source={source}, location={location}, run_date={run_date}")
 

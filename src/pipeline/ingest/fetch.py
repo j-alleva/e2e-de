@@ -7,12 +7,11 @@ with partitioning by source, run_date, and location.
 
 """
 
-import os
 import requests
-import json
 import logging
 from datetime import datetime, timezone
 from src.pipeline.config import Project_Config
+from src.pipeline.io.local import save_json_local
 
 logger = logging.getLogger(__name__)
 
@@ -70,23 +69,16 @@ def _save_to_bronze(data:dict, run_date:str, location:str,source:str) -> str:
     Returns:
         Path to saved JSON file
     """
-    
     # Add ingestion metadata
     data["ingestion_timestamp"] = datetime.now(timezone.utc).isoformat()
     data["source"] = source
 
-    # Generate partitioned path
+    # Use Config to get the directory path (e.g., data/bronze/source=openmeteo/...)
     dir_path = Project_Config.Paths.bronze_path(source, run_date, location)
     file_path = f"{dir_path}/raw.json"
 
-    # Create directory and write file
-    os.makedirs(dir_path, exist_ok = True)
-    logger.debug(f"Created directory: {dir_path}")
-
-    with open(file_path,"w") as f:
-        json.dump(data,f)
-
-    logger.info(f"Wrote raw JSON to: {file_path}")
+    # Call our centralized I/O module instead of handling it here
+    save_json_local(data, file_path)
 
     return file_path
 
@@ -107,18 +99,12 @@ def _run_fetch(run_date:str, location:str,source:str) -> None:
         logger.info(f"Starting fetch: source={source}, location={location}, run_date={run_date}")
         
         url = _build_url(location, run_date)
-
         data = _fetch_from_api(url)
-
-        _save_to_bronze(data, run_date, location,source)
-
-    except requests.exceptions.RequestException as e:
-        logger.error(f"API request failed {e}")
-        raise
+        _save_to_bronze(data, run_date, location, source)
 
     except Exception as e:
         logger.error(f"Error during fetch: {e}")
-        raise 
+        raise
     
 
 
