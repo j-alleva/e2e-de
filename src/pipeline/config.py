@@ -13,6 +13,7 @@ Classes:
 Environment Variables Required:
     LOCAL_BRONZE_PATH: Base path for raw data storage
     LOCAL_SILVER_PATH: Base path for cleaned data storage
+    LOCAL_GOLD_PATH: Base path for curated data storage (Placeholder)
     OPEN_METEO_URL_TEMPLATE: URL template for Open-Meteo API
 
 Environment Variables Optional (Block 2+):
@@ -56,6 +57,7 @@ class Project_Config:
         """
         LOCAL_BRONZE = os.getenv("LOCAL_BRONZE_PATH")
         LOCAL_SILVER = os.getenv("LOCAL_SILVER_PATH")
+        LOCAL_GOLD = os.getenv("LOCAL_GOLD_PATH")
         
         @classmethod
         def bronze_path(cls, source: str, run_date: str, location:str = None) -> str:
@@ -95,6 +97,25 @@ class Project_Config:
             if location:
                 path += f"/location={location}"
             logger.debug(f"Generated silver path: {path}")
+            return path
+        
+        @classmethod
+        def gold_path(cls, source: str, run_date: str, location:str = None) -> str:
+            """
+            Generate partitioned gold layer path for cleaned data storage. (Placeholder)
+
+            Args:
+                source: Data source identifier (e.g., 'openmeteo')
+                run_date: Date in YYYY-MM-DD format
+                location: Optional location name for additional partitioning
+
+            Returns:
+                Formatted path string like 'data/gold/source=X/run_date=Y/location=Z'
+            """
+            path = f"{cls.LOCAL_GOLD}/source={source}/run_date={run_date}"
+            if location:
+                path += f"/location={location}"
+            logger.debug(f"Generated gold path: {path}")
             return path
         
     class API:
