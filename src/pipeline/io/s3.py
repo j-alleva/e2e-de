@@ -37,10 +37,15 @@ class S3Client:
         # Always force forward slashes
         if s3_key is None:
             s3_key = local_path.replace(os.sep,"/")
-            # logger debug?
+            logger.debug(f"Auto-generated s3_key from local_path: {s3_key}")
         else:
             s3_key = s3_key.replace(os.sep,"/")
-            # logger debug?
+            logger.debug(f"Normalized s3_key separators: {s3_key}")
+
+        # Remove any existing leading "./" to prevent a "." folder in S3
+        if s3_key.startswith("./"):
+            s3_key = s3_key[2:]
+            logger.debug(f"Removed leading './': {s3_key}")
 
         if check_exists:
             try:
