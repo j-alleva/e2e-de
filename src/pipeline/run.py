@@ -18,7 +18,7 @@ from src.pipeline.config import Project_Config
 
 logger = logging.getLogger(__name__)
 
-def run_pipeline(run_date: str, location: str = "Boston", source: str = "openmeteo") -> bool:
+def run_pipeline(run_date: str, location: str = "Boston", source: str = "openmeteo", write_to_s3: bool = False) -> bool:
     """
     Orchestrate the full ingestion pipeline: fetch -> validate -> normalize.
     
@@ -26,6 +26,7 @@ def run_pipeline(run_date: str, location: str = "Boston", source: str = "openmet
         run_date: Date to process in YYYY-MM-DD format
         location: Location name. Defaults to 'Boston'.
         source: Data source identifier. Defaults to 'openmeteo'.
+        write_to_s3: If true, upload bronze/silver files to S3. Defaults to False
     
     Returns:
         True if pipeline completes successfully
@@ -39,14 +40,14 @@ def run_pipeline(run_date: str, location: str = "Boston", source: str = "openmet
     
     try:
         logger.info(f"[1/3] FETCH: Retrieving data from API...")
-        _run_fetch(run_date, location, source)
+        _run_fetch(run_date, location, source, write_to_s3=write_to_s3)
 
         logger.info(f"[2/3] VALIDATE: Checking data quality...")
         bronze_path = f"{Project_Config.Paths.bronze_path(source, run_date, location)}/raw.json"
         validate_bronze_file(bronze_path)
 
         logger.info(f"[3/3] NORMALIZE: Transforming to silver layer...")
-        run_normalize(run_date, location, source)
+        run_normalize(run_date, location, source, write_to_s3=write_to_s3)
 
         logger.info(f"="*60)
         logger.info(f"Pipeline completed successfully!")
@@ -105,13 +106,19 @@ Examples:
         help="Data source identifier (default: openmeteo)"
     )
 
+    parser.add_argument(
+        "--write-s3",
+        action="store_true",
+        help="Upload data to s3 (default: False)"
+    )
+
     args = parser.parse_args()
 
     logger.info(f"CLI arguments parsed: run_date={args.run_date}, location={args.location}, source={args.source}")
 
     Project_Config.validate()
 
-    run_pipeline(args.run_date, args.location, args.source)
+    run_pipeline(args.run_date, args.location, args.source,write_to_s3 = args.write_s3)
 
 if __name__ == "__main__":
     main()

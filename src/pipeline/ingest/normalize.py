@@ -13,6 +13,7 @@ import logging
 import pandas as pd
 from src.pipeline.config import Project_Config
 from src.pipeline.io.local import save_parquet_local, read_json_local
+from src.pipeline.io.s3 import S3Client
 
 logger = logging.getLogger(__name__)
 
@@ -58,7 +59,7 @@ def _normalize_data(data : dict) -> pd.DataFrame:
     return df
 
 
-def _save_to_silver(df : pd.DataFrame,run_date : str, location: str, source: str) -> str:
+def _save_to_silver(df : pd.DataFrame,run_date : str, location: str, source: str, write_to_s3 : bool = False) -> str:
     """
     Save normalized DataFrame to silver layer as Parquet using centralized I/O.
     
@@ -85,10 +86,15 @@ def _save_to_silver(df : pd.DataFrame,run_date : str, location: str, source: str
     # Use the local I/O module
     save_parquet_local(df, file_path)
 
+    if write_to_s3:
+        logger.info(f"Uploading silver file to S3: {file_path}")
+        s3 = S3Client()
+        s3.upload_file(local_path=file_path,s3_key=None)
+
     return file_path
 
 
-def run_normalize(run_date : str, location : str = "Boston", source: str = "openmeteo") -> bool:
+def run_normalize(run_date : str, location : str = "Boston", source: str = "openmeteo", write_to_s3 : bool = False) -> bool:
     """
     Orchestrate normalization: load bronze, transform, save to silver.
     
@@ -113,7 +119,7 @@ def run_normalize(run_date : str, location : str = "Boston", source: str = "open
         # Load -> normalize -> save
         raw_data = _load_bronze_data(input_path)
         df = _normalize_data(raw_data)
-        _save_to_silver(df,run_date,location,source)
+        _save_to_silver(df,run_date,location,source,write_to_s3=write_to_s3)
         
         logger.info(f"Normalization completed successfully")
         return True

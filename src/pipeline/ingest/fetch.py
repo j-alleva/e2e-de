@@ -12,6 +12,7 @@ import logging
 from datetime import datetime, timezone
 from src.pipeline.config import Project_Config
 from src.pipeline.io.local import save_json_local
+from src.pipeline.io.s3 import S3Client
 
 logger = logging.getLogger(__name__)
 
@@ -56,7 +57,7 @@ def _fetch_from_api(url:str) -> dict:
 
     return data
 
-def _save_to_bronze(data:dict, run_date:str, location:str,source:str) -> str:
+def _save_to_bronze(data:dict, run_date:str, location:str,source:str, write_to_s3: bool = False) -> str:
     """
     Save raw API data to bronze layer with metadata.
 
@@ -80,9 +81,15 @@ def _save_to_bronze(data:dict, run_date:str, location:str,source:str) -> str:
     # Call our centralized I/O module instead of handling it here
     save_json_local(data, file_path)
 
+    if write_to_s3:
+        logger.info(f"Uploading bronze file to S3: {file_path}")
+        s3 = S3Client()
+        #No s3 key auto-mirrors local folder structure 
+        s3.upload_file(local_path = file_path, s3_key=None)
+
     return file_path
 
-def _run_fetch(run_date:str, location:str,source:str) -> None:
+def _run_fetch(run_date:str, location:str,source:str,write_to_s3 : bool = False) -> None:
     """
     Orchestrate fetch process: build URL, fetch data, save to bronze.
     
@@ -100,7 +107,7 @@ def _run_fetch(run_date:str, location:str,source:str) -> None:
         
         url = _build_url(location, run_date)
         data = _fetch_from_api(url)
-        _save_to_bronze(data, run_date, location, source)
+        _save_to_bronze(data, run_date, location, source, write_to_s3=write_to_s3)
 
     except Exception as e:
         logger.error(f"Error during fetch: {e}")
