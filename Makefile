@@ -1,7 +1,7 @@
-.PHONY: help up down ingest schema load warehouse queries clean
+.PHONY: help up down ingest ingest-s3 schema load warehouse queries clean
 
 help:
-	@echo "Available: up, down, ingest, schema, load, warehouse, queries, clean"
+	@echo "Available: up, down, ingest, ingest-s3, schema, load, warehouse, queries, clean"
 
 up:  ## Start Docker
 	@docker compose up -d
@@ -11,6 +11,9 @@ down: ## Stop Docker
 
 ingest: ## Run Python Pipeline (Extract + Load Raw)
 	@python -m src.pipeline.run --run-date $(RUN_DATE) --location $(LOCATION)
+
+ingest-s3: ## Run Python Pipeline (Local + S3 Upload)
+	@python -m src.pipeline.run --run-date $(RUN_DATE) --location $(LOCATION) --write-s3
 
 schema: ## Create Postgres schema (dimensions, facts, staging)
 	@docker exec -i de_postgres psql -U admin -d warehouse < sql/postgres/01_create_tables.sql
