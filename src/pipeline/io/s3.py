@@ -1,3 +1,25 @@
+"""
+S3 client wrapper for cloud storage integration.
+
+Handles uploading bronze/silver data to AWS S3 with optional idempotency checks
+(check_exists parameter), path normalization, and structured logging.
+
+Usage:
+    from src.pipeline.io.s3 import S3Client
+    
+    s3 = S3Client()
+    s3.upload_file(
+        local_path="./data/bronze/source=openmeteo/run_date=2026-02-11/raw.json",
+        s3_key="bronze/source=openmeteo/run_date=2026-02-11/raw.json"
+    )
+    
+    Or with idempotency check (Block 5+):
+    s3.upload_file(local_path=path, s3_key=key, check_exists=True)
+
+Configuration:
+    Requires AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, AWS_BUCKET_NAME, AWS_REGION
+    (See src.pipeline.config.Project_Config and infra.md)
+"""
 import boto3
 import logging
 import os
