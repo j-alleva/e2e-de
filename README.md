@@ -2,14 +2,13 @@
 
 End-to-end data engineering platform demonstrating production-grade ingestion, transformation, orchestration, and analytics.
 
-**Status:** Blocks 1-2 Complete | Python Ingestion + Postgres Staging & Analytics
+**Status:** Blocks 1-3 Complete | Python Ingestion + Postgres Staging + AWS S3 Data Lake
 
 ### Tech Stack
-
-- **Languages:** Python (Pandas, PyArrow), SQL
+- **Languages:** Python (Pandas, PyArrow, Boto3), SQL(PostgreSQL)
 - **Tools:** Docker, Docker Compose, Git/GitHub, Make
-- **Storage:** PostgreSQL (dockerized), Local Data Lake (Bronze/Silver)
-- **Planned:** AWS S3, Spark/AWS Glue, Snowflake, dbt, Airflow, Streamlit
+- **Storage:** PostgreSQL (dockerized), Local Data Lake, AWS S3
+- **Planned:** Spark/AWS Glue, Snowflake, dbt, Airflow, Streamlit
 
 ---
 
@@ -19,6 +18,7 @@ End-to-end data engineering platform demonstrating production-grade ingestion, t
 API (Open-Meteo)
     --> Python CLI (fetch --> validate --> normalize)
         --> Local Data Lake (Bronze JSON --> Silver Parquet)
+            --> [Optional] AWS S3 Backup (Bronze/Silver)
             --> Postgres (raw_weather staging --> dim/fact star schema)
                 --> Analytical SQL queries
 ```
@@ -230,6 +230,24 @@ sql/
 
 ---
 
+## Block 3: Hybrid Cloud Storage (S3)
+
+Extended the local ingestion pipeline to support hybrid cloud storage. Implemented a custom `s3.py` client using `boto3` to push Bronze and Silver artifacts to AWS S3, secured by a custom Least Privilege IAM policy.
+
+### What's Implemented
+
+- **Hybrid I/O** - Pipeline supports optional `--write-s3` flag to mirror local files to the cloud
+- **Least Privilege Security** - Custom IAM policy restricting the programmatic user to specific bucket actions (`PutObject`, `GetObject`) only
+- **Hive Partitioning** - S3 keys mirror the local directory structure (`source=.../run_date=...`) to prepare for Spark querying
+- **Infrastructure as Code** - Documented storage patterns and security policies in `infra.md`
+
+### Running with S3
+
+```bash
+# Ingest and automatically upload to S3
+make ingest-s3 RUN_DATE=2026-02-11 LOCATION=Boston
+```
+
 ## Project Structure
 
 ```
@@ -244,13 +262,14 @@ e2e-de/
 │   │   └── normalize.py           # Bronze --> silver transformation
 │   ├── io/
 │   │   ├── local.py               # Local filesystem I/O
-│   │   └── s3.py                  # AWS S3 I/O (planned)
+│   │   └── s3.py                  # AWS S3 I/O wrapper (boto3)
 │   └── transform/
 │       └── pandas_transform.py    # Python-based transformations
 ├── sql/
 │   ├── postgres/                  # DDL and population scripts
 │   └── queries/                   # Analytical SQL queries
 ├── docker-compose.yml             # Postgres service
+├── infra.md                       # Cloud architecture & security docs
 ├── Makefile                       # Single-command developer experience
 ├── requirements.txt               # Python dependencies
 └── .env.example                   # Configuration template
@@ -273,7 +292,12 @@ See `.env.example` for the full configuration template.
 |---|---|---|
 | `LOCAL_BRONZE_PATH` | `./data/bronze` | Bronze layer storage path |
 | `LOCAL_SILVER_PATH` | `./data/silver` | Silver layer storage path |
+| `LOCAL_GOLD_PATH` | `./data/gold` | Gold layer storage path (placeholder) |
 | `OPEN_METEO_URL_TEMPLATE` | (see .env.example) | API endpoint template |
+| `AWS_ACCESS_KEY_ID` | (user-supplied) | Your AWS Access Key |
+| `AWS_SECRET_ACCESS_KEY` | (user-supplied) | AWS programmatic user secret |
+| `AWS_BUCKET_NAME` | (user-supplied) | S3 bucket name |
+| `AWS_REGION` | (user-supplied) | AWS region (e.g., us-east-2) |
 
 ### Make Commands
 
@@ -282,6 +306,7 @@ make help                                    # Show all available commands
 make up                                      # Start Docker services (Postgres)
 make down                                    # Stop Docker services
 make ingest RUN_DATE=2026-01-31 LOCATION=Boston     # Run Python ingestion pipeline
+make ingest-s3 RUN_DATE=2026-01-31 LOCATION=Boston  # Run ingestion + upload to S3
 make schema                                  # Create Postgres schema (staging + dimensions + facts)
 make load RUN_DATE=2026-01-31 LOCATION=Boston       # Load silver Parquet into Postgres staging
 make warehouse                               # Populate fact/dimension tables from staging
@@ -311,7 +336,7 @@ make clean                                   # Remove local data lake files
 
 - [x] **Block 1** - Python ingestion + cleaning (local bronze/silver data lake)
 - [x] **Block 2** - SQL foundations + star schema modeling (Postgres in Docker)
-- [ ] **Block 3** - AWS S3 data lake layout with IAM + partitioned uploads
+- [x] **Block 3** - AWS S3 data lake layout with IAM + partitioned uploads
 - [ ] **Block 4** - Dockerize ingestion + GitHub Actions CI (lint, test)
 - [ ] **Block 5** - Airflow orchestration (DAG with parameterized run_date, retries, backfills)
 - [ ] **Block 6** - Spark transformations via AWS Glue (silver to gold, partitioned Parquet)
@@ -328,7 +353,8 @@ make clean                                   # Remove local data lake files
 |---|---|
 | Block 1: Python Ingestion | Complete |
 | Block 2: Postgres + SQL | Complete |
-| Blocks 3-10 | Planned |
+| Block 3: S3 + IAM Security | Complete |
+| Blocks 4-10 | Planned |
 
 **Last Updated:** February 2026
 
