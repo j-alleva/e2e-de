@@ -160,7 +160,7 @@ class Project_Config:
                 Connection string in format: postgresql://user:pass@host:port/database
             """
             conn_str = f"postgresql://{cls.POSTGRES_USER}:{cls.POSTGRES_PASSWORD}@{cls.POSTGRES_HOST}:{cls.POSTGRES_PORT}/{cls.POSTGRES_DB}"
-            logger.debug(f"PostgreSQL connection string constructed (password masked)")
+            logger.debug("PostgreSQL connection string constructed (password masked)")
             return conn_str
         
     @classmethod

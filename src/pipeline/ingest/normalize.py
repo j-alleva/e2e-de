@@ -121,7 +121,7 @@ def run_normalize(run_date : str, location : str = "Boston", source: str = "open
         df = _normalize_data(raw_data)
         _save_to_silver(df,run_date,location,source,write_to_s3=write_to_s3)
         
-        logger.info(f"Normalization completed successfully")
+        logger.info("Normalization completed successfully")
         return True
 
     except Exception as e:

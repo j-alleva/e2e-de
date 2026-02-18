@@ -34,31 +34,31 @@ def run_pipeline(run_date: str, location: str = "Boston", source: str = "openmet
     Raises:
         Exception: Any error during fetch, validation, or normalization causes sys.exit(1)
     """
-    logger.info(f"="*60)
+    logger.info("="*60)
     logger.info(f"Starting Pipeline: {source} | {location} | {run_date}")
-    logger.info(f"="*60)
+    logger.info("="*60)
     
     try:
-        logger.info(f"[1/3] FETCH: Retrieving data from API...")
+        logger.info("[1/3] FETCH: Retrieving data from API...")
         _run_fetch(run_date, location, source, write_to_s3=write_to_s3)
 
-        logger.info(f"[2/3] VALIDATE: Checking data quality...")
+        logger.info("[2/3] VALIDATE: Checking data quality...")
         bronze_path = f"{Project_Config.Paths.bronze_path(source, run_date, location)}/raw.json"
         validate_bronze_file(bronze_path)
 
-        logger.info(f"[3/3] NORMALIZE: Transforming to silver layer...")
+        logger.info("[3/3] NORMALIZE: Transforming to silver layer...")
         run_normalize(run_date, location, source, write_to_s3=write_to_s3)
 
-        logger.info(f"="*60)
-        logger.info(f"Pipeline completed successfully!")
-        logger.info(f"="*60)
+        logger.info("="*60)
+        logger.info("Pipeline completed successfully!")
+        logger.info("="*60)
 
         return True
     
     except Exception as e:
-        logger.error(f"="*60)
+        logger.error("="*60)
         logger.error(f"Pipeline failed: {e}")
-        logger.error(f"="*60)
+        logger.error("="*60)
         sys.exit(1)
 
 def main():

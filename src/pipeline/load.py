@@ -25,9 +25,9 @@ def connect_to_postgres() -> Engine:
         sqlalchemy.engine.Engine: The connection engine.
     """
     conn_str = Project_Config.Database.connection_string()
-    logger.info(f"Connecting to PostgreSQL...")
+    logger.info("Connecting to PostgreSQL...")
     engine = create_engine(conn_str)
-    logger.info(f"Connection successful!")
+    logger.info("Connection successful!")
     return engine
     
 

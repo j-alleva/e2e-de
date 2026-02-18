@@ -8,11 +8,8 @@ Validates raw JSON data from API before normalization:
 - Duplicate detection on natural key (location + timestamp)
 """
 
-import json
-import os
 import logging 
 from datetime import datetime
-from src.pipeline.config import Project_Config
 from src.pipeline.io.local import read_json_local
 
 logger = logging.getLogger(__name__)
@@ -73,7 +70,7 @@ def _validate_data_quality(data:dict) -> bool:
     # Check hourly data is not empty
     if not hourly.get("time") or len(hourly["time"]) == 0:
         logger.error("Hourly data is empty")
-        raise ValueError(f"Dataset is empty")
+        raise ValueError("Dataset is empty")
     
     record_count = len(hourly["time"])
     logger.debug(f"Validating {record_count} records")
@@ -126,7 +123,7 @@ def validate_bronze_file(file_path : str) -> bool:
         _validate_schema(data)
         _validate_data_quality(data)
 
-        logger.info(f"Data successfully passed validation! Suitable for normalization")
+        logger.info("Data successfully passed validation! Suitable for normalization")
         return True
 
     except Exception:
