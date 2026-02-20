@@ -9,11 +9,11 @@ up:  ## Start Docker
 down: ## Stop Docker
 	@docker compose down
 
-ingest: ## Run Python Pipeline (Extract + Load Raw)
-	@python -m src.pipeline.run --run-date $(RUN_DATE) --location $(LOCATION)
+ingest: ## Run Dockerized Pipeline (Extract + Write Local)
+	@docker run --rm --env-file .env de-ingest --run-date $(RUN_DATE) --location $(LOCATION)
 
-ingest-s3: ## Run Python Pipeline (Local + S3 Upload)
-	@python -m src.pipeline.run --run-date $(RUN_DATE) --location $(LOCATION) --write-s3
+ingest-s3: ## Run Dockerized Pipeline (Extract + Write Local + S3 Upload)
+	@docker run --rm --env-file .env de-ingest --run-date $(RUN_DATE) --location $(LOCATION) --write-s3
 
 schema: ## Create Postgres schema (dimensions, facts, staging)
 	@docker exec -i de_postgres psql -U admin -d warehouse < sql/postgres/01_create_tables.sql
