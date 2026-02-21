@@ -7,9 +7,13 @@ greenlet==3.3.1
 idna==3.11
 iniconfig==2.3.0
 jmespath==1.1.0
+librt==0.8.1
+mypy==1.19.1
+mypy_extensions==1.1.0
 numpy==2.4.2
 packaging==26.0
 pandas==3.0.0
+pathspec==1.0.4
 pluggy==1.6.0
 psycopg2-binary==2.9.11
 pyarrow==23.0.0
@@ -22,6 +26,7 @@ ruff==0.15.1
 s3transfer==0.16.0
 six==1.17.0
 SQLAlchemy==2.0.46
+types-requests==2.32.4.20260107
 typing_extensions==4.15.0
 tzdata==2025.3
 urllib3==2.6.3
