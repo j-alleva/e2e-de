@@ -20,6 +20,7 @@ Configuration:
     Requires AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, AWS_BUCKET_NAME, AWS_REGION
     (See src.pipeline.config.Project_Config and infra.md)
 """
+from typing import Optional
 import boto3
 import logging
 import os
@@ -42,7 +43,7 @@ class S3Client:
         self.client = boto3.client('s3', region_name=self.region)
         logger.info(f"S3 Client initialized for bucket: {self.bucket_name}")
 
-    def upload_file(self, local_path: str, s3_key: str, check_exists: bool = False) -> bool:
+    def upload_file(self, local_path: str, s3_key: Optional[str] = None, check_exists: bool = False) -> bool:
         """
         Uploads a local file to the S3 bucket.
 
