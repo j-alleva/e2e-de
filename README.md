@@ -1,5 +1,7 @@
 # e2e-de
 
+[![CI Pipeline](https://github.com/j-alleva/e2e-de/actions/workflows/ci.yml/badge.svg)](https://github.com/j-alleva/e2e-de/actions/workflows/ci.yml)
+
 End-to-end data engineering platform demonstrating production-grade ingestion, transformation, orchestration, and analytics.
 
 **Status:** Blocks 1-3 Complete | Python Ingestion + Postgres Staging + AWS S3 Data Lake
