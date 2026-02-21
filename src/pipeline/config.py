@@ -23,7 +23,7 @@ Environment Variables Optional (Block 2+):
     POSTGRES_PORT: PostgreSQL port (default: 5432)
     POSTGRES_DB: PostgreSQL database name (default: warehouse) 
 """
-
+from typing import Optional
 import os
 import logging
 from dotenv import load_dotenv
@@ -60,7 +60,7 @@ class Project_Config:
         LOCAL_GOLD = os.getenv("LOCAL_GOLD_PATH")
         
         @classmethod
-        def bronze_path(cls, source: str, run_date: str, location:str = None) -> str:
+        def bronze_path(cls, source: str, run_date: str, location: Optional[str]=None) -> str:
             """
             Generate partitioned bronze layer path for raw data storage.
 
@@ -80,7 +80,7 @@ class Project_Config:
             return path
         
         @classmethod
-        def silver_path(cls, source: str, run_date: str, location:str = None) -> str:
+        def silver_path(cls, source: str, run_date: str, location: Optional[str]=None) -> str:
             """
             Generate partitioned silver layer path for cleaned data storage.
 
@@ -100,7 +100,7 @@ class Project_Config:
             return path
         
         @classmethod
-        def gold_path(cls, source: str, run_date: str, location:str = None) -> str:
+        def gold_path(cls, source: str, run_date: str, location: Optional[str]=None) -> str:
             """
             Generate partitioned gold layer path for cleaned data storage. (Placeholder)
 
@@ -137,6 +137,8 @@ class Project_Config:
                 Complete API URL with latitude and longitude parameters
             """
             coords = Project_Config.LOCATION_LOOKUP[location]
+            if cls.OPEN_METEO_URL_TEMPLATE is None:
+                raise ValueError("OPEN_METEO_URL_TEMPLATE environment variable is not set")
             url = cls.OPEN_METEO_URL_TEMPLATE.format(lat=coords["latitude"],lon=coords["longitude"])
             logger.debug(f"Generated API URL for {location}: {url}")
             return url
