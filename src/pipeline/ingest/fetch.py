@@ -47,7 +47,7 @@ def _fetch_from_api(url:str) -> dict:
         requests.exceptions.RequestException: If HTTP request fails
     """
     logger.info("Sending GET request to API")
-    response = requests.get(url)
+    response = requests.get(url, timeout=10)
     response.raise_for_status()
 
     data = response.json()
