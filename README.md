@@ -4,11 +4,11 @@
 
 End-to-end data engineering platform demonstrating production-grade ingestion, transformation, orchestration, and analytics.
 
-**Status:** Blocks 1-3 Complete | Python Ingestion + Postgres Staging + AWS S3 Data Lake
+**Status:** Blocks 1-4 Complete | Dockerized Python Ingestion + CI/CD + Postgres Staging + AWS S3 Data Lake
 
 ### Tech Stack
 - **Languages:** Python (Pandas, PyArrow, Boto3), SQL(PostgreSQL)
-- **Tools:** Docker, Docker Compose, Git/GitHub, Make
+- **Tools:** Docker, Docker Compose, Git/GitHub, GitHub Actions, Make, Pytest, Ruff, Mypy
 - **Storage:** PostgreSQL (dockerized), Local Data Lake, AWS S3
 - **Planned:** Spark/AWS Glue, Snowflake, dbt, Airflow, Streamlit
 
@@ -250,10 +250,29 @@ Extended the local ingestion pipeline to support hybrid cloud storage. Implement
 make ingest-s3 RUN_DATE=2026-02-11 LOCATION=Boston
 ```
 
-## Project Structure
+## Block 4: Dockerization & CI/CD
+
+Packaged the ingestion pipeline into a reproducible Docker container and implemented strict code hygiene and automated testing via GitHub Actions.
+
+### What's Implemented
+- **Containerization:** Pipeline runs in an isolated Python slim Docker container, eliminating local environment dependencies.
+- **CI/CD Automation:** GitHub Actions workflow (`ci.yml`) runs automatically on every push
+- **Unit Testing:** Deterministic unit tests using `pytest` and mock data to validate schema enforcement, edge cases, and data normalization logic.
+- **Code Hygiene:** Strict linting with `ruff` and static type checking with `mypy` enforced in the CI pipeline.
+- **Secure Credential Injection:** AWS credentials securely passed at runtime via `.env` file mapping, ensuring zero secret leakage in the Docker image.
+
+### Running with Docker
+
+```bash
+docker build -t de-ingest .
+docker run --env-file .env de-ingest --run-date 2026-01-31 --location Boston
+```
+## Project Structure (Current)
 
 ```
 e2e-de/
+├── .github/workflows/
+│   └── ci.yml                     # GitHub Actions CI/CD pipeline
 ├── src/pipeline/
 │   ├── config.py                  # Environment config + path generation
 │   ├── run.py                     # CLI entry point (ingestion)
@@ -263,15 +282,21 @@ e2e-de/
 │   │   ├── validate.py            # Schema + data quality checks
 │   │   └── normalize.py           # Bronze --> silver transformation
 │   ├── io/
-│   │   ├── local.py               # Local filesystem I/O
+│   │   ├── local.py               # Local filesystem I/O (Currently Empty)
 │   │   └── s3.py                  # AWS S3 I/O wrapper (boto3)
 │   └── transform/
 │       └── pandas_transform.py    # Python-based transformations
+├── docs/adr/ # ADR files 
+├── tests/
+│   ├── test_config.py             # Pytest unit tests (config)
+│   └── test_pipeline.py           # Pytest unit tests (validation & normalization)
 ├── sql/
 │   ├── postgres/                  # DDL and population scripts
 │   └── queries/                   # Analytical SQL queries
-├── docker-compose.yml             # Postgres service
-├── infra.md                       # Cloud architecture & security docs
+├── Dockerfile                     # Python containerization blueprint
+├── conftest.py                    # Pytest configuration file
+├── docker-compose.yml             # Postgres service definition
+├── infra.md                       # Cloud architecture & security docs
 ├── Makefile                       # Single-command developer experience
 ├── requirements.txt               # Python dependencies
 └── .env.example                   # Configuration template
@@ -307,8 +332,8 @@ See `.env.example` for the full configuration template.
 make help                                    # Show all available commands
 make up                                      # Start Docker services (Postgres)
 make down                                    # Stop Docker services
-make ingest RUN_DATE=2026-01-31 LOCATION=Boston     # Run Python ingestion pipeline
-make ingest-s3 RUN_DATE=2026-01-31 LOCATION=Boston  # Run ingestion + upload to S3
+make ingest RUN_DATE=2026-01-31 LOCATION=Boston     # Run Dockerized Python ingestion pipeline
+make ingest-s3 RUN_DATE=2026-01-31 LOCATION=Boston  # Run Dockerized ingestion + upload to S3
 make schema                                  # Create Postgres schema (staging + dimensions + facts)
 make load RUN_DATE=2026-01-31 LOCATION=Boston       # Load silver Parquet into Postgres staging
 make warehouse                               # Populate fact/dimension tables from staging
@@ -339,7 +364,7 @@ make clean                                   # Remove local data lake files
 - [x] **Block 1** - Python ingestion + cleaning (local bronze/silver data lake)
 - [x] **Block 2** - SQL foundations + star schema modeling (Postgres in Docker)
 - [x] **Block 3** - AWS S3 data lake layout with IAM + partitioned uploads
-- [ ] **Block 4** - Dockerize ingestion + GitHub Actions CI (lint, test)
+- [x] **Block 4** - Dockerize ingestion + GitHub Actions CI (lint, test, type hint)
 - [ ] **Block 5** - Airflow orchestration (DAG with parameterized run_date, retries, backfills)
 - [ ] **Block 6** - Spark transformations via AWS Glue (silver to gold, partitioned Parquet)
 - [ ] **Block 7** - Snowflake warehouse load (stage + COPY INTO + MERGE for idempotency)
@@ -356,7 +381,8 @@ make clean                                   # Remove local data lake files
 | Block 1: Python Ingestion | Complete |
 | Block 2: Postgres + SQL | Complete |
 | Block 3: S3 + IAM Security | Complete |
-| Blocks 4-10 | Planned |
+| Block 4: Docker & CI/CD | Complete |
+| Blocks 5-10 | Planned |
 
 **Last Updated:** February 2026
 
