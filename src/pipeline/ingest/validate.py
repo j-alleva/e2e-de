@@ -76,12 +76,22 @@ def _validate_data_quality(data:dict) -> bool:
     logger.debug(f"Validating {record_count} records")
     
     # Validate timestamp format
-    try:
-        datetime.fromisoformat(hourly["time"][0])
-        logger.debug(f"Timestamp format validated: {hourly['time'][0]}")
-    except Exception as e:
-        logger.error(f"Timestamp not parseable: {hourly['time'][0]}")
-        raise ValueError(f"Timestamp is not parseable: {e}")
+    invalid_timestamps = []
+    for i, ts in enumerate(hourly["time"]):
+        try:
+            datetime.fromisoformat(ts)
+        except Exception as e:
+            invalid_timestamps.append((i, ts, str(e)))
+    
+    if invalid_timestamps:
+        error_detail = "; ".join([f"[{idx}] {ts} ({err})" for idx, ts, err in invalid_timestamps[:5]])
+        logger.error(f"Found {len(invalid_timestamps)} unparseable timestamps. Examples: {error_detail}")
+        raise ValueError(
+            f"Found {len(invalid_timestamps)} unparseable timestamps. "
+            f"Examples: {error_detail}"
+        )
+    
+    logger.debug(f"Timestamp validation passed: all {record_count} timestamps parseable")
     
     # Check for duplicates on natural key (location + timestamp)
     latitude = data['latitude']
