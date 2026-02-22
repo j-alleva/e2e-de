@@ -18,7 +18,7 @@ End-to-end data engineering platform demonstrating production-grade ingestion, t
 
 ```
 API (Open-Meteo)
-    --> Python CLI (fetch --> validate --> normalize)
+    --> Dockerized Python Ingestion (fetch --> validate --> normalize)
         --> Local Data Lake (Bronze JSON --> Silver Parquet)
             --> [Optional] AWS S3 Backup (Bronze/Silver)
             --> Postgres (raw_weather staging --> dim/fact star schema)
