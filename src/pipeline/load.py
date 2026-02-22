@@ -9,7 +9,7 @@
 
 import pandas as pd
 import argparse
-from sqlalchemy import create_engine
+from sqlalchemy import create_engine, text
 from sqlalchemy.engine import Engine
 import logging
 from src.pipeline.config import Project_Config
@@ -17,18 +17,37 @@ from src.pipeline.io.local import read_parquet_local
 
 logger = logging.getLogger(__name__)
 
-def connect_to_postgres() -> Engine:
+def connect_to_postgres(connect_timeout: int = 10) -> Engine:
     """
-    Establishes a connection to the Postgres database using SQLAlchemy.
+    Establishes a connection to the Postgres database with timeout protection.
+    
+    Args:
+        connect_timeout: Max seconds to wait for initial connection. Defaults to 10.
     
     Returns:
         sqlalchemy.engine.Engine: The connection engine.
+    
+    Raises:
+        sqlalchemy.exc.OperationalError: If connection fails or times out.
     """
     conn_str = Project_Config.Database.connection_string()
     logger.info("Connecting to PostgreSQL...")
-    engine = create_engine(conn_str)
-    logger.info("Connection successful!")
-    return engine
+    
+    try:
+        engine = create_engine(
+            conn_str,
+            connect_args={"connect_timeout": connect_timeout}
+        )
+        # Connection Test
+        with engine.connect() as conn:
+            conn.execute(text("SELECT 1"))
+        
+        logger.info("PostgreSQL connection successful!")
+        return engine
+    
+    except Exception as e:
+        logger.error(f"Failed to connect to PostgreSQL after {connect_timeout}s: {e}")
+        raise
     
 
 def load_silver_data(run_date: str, location: str, source: str) -> pd.DataFrame:
