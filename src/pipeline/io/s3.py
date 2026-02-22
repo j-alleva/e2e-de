@@ -21,6 +21,7 @@ Configuration:
     (See src.pipeline.config.Project_Config and infra.md)
 """
 from typing import Optional
+import re
 import boto3
 import logging
 import os
@@ -42,6 +43,28 @@ class S3Client:
         # boto3 looks for AWS keys in env
         self.client = boto3.client('s3', region_name=self.region)
         logger.info(f"S3 Client initialized for bucket: {self.bucket_name}")
+    
+    def _validate_s3_key(self, s3_key: str) -> None:
+        """
+        Validate S3 key is safe (no path traversal, no shell metacharacters).
+        
+        Args:
+            s3_key: The S3 object key to validate
+        
+        Raises:
+            ValueError: If key contains path traversal attempts or invalid characters
+        """
+        if ".." in s3_key or s3_key.startswith("/"):
+            raise ValueError(
+                f"Invalid S3 key: {s3_key}. "
+                f"Cannot contain '..' or start with '/'"
+            )
+        
+        if not re.match(r'^[a-zA-Z0-9/_.-]+$', s3_key):
+            raise ValueError(
+                f"Invalid S3 key: {s3_key}. "
+                f"Must contain only alphanumeric, '/', '_', '-', '.'"
+            )
 
     def upload_file(self, local_path: str, s3_key: Optional[str] = None, check_exists: bool = False) -> bool:
         """
@@ -69,6 +92,8 @@ class S3Client:
         if s3_key.startswith("./"):
             s3_key = s3_key[2:]
             logger.debug(f"Removed leading './': {s3_key}")
+
+        self._validate_s3_key(s3_key)
 
         if check_exists:
             try:
