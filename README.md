@@ -286,7 +286,7 @@ e2e-de/
 │   │   └── s3.py                  # AWS S3 I/O wrapper (boto3)
 │   └── transform/
 │       └── pandas_transform.py    # Python-based transformations
-├── docs/adr/ # ADR files 
+├── docs/adr/                      # ADR files 
 ├── tests/
 │   ├── test_config.py             # Pytest unit tests (config)
 │   └── test_pipeline.py           # Pytest unit tests (validation & normalization)
