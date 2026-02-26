@@ -1,4 +1,4 @@
-.PHONY: help up down ingest ingest-s3 schema load warehouse queries clean
+.PHONY: help up down ingest ingest-s3 schema load warehouse queries clean airflow-init airflow-up airflow-down
 
 help:
 	@echo "Available: up, down, ingest, ingest-s3, schema, load, warehouse, queries, clean"
@@ -8,6 +8,15 @@ up:  ## Start Docker
 
 down: ## Stop Docker
 	@docker compose down
+
+airflow-init: ## Initialize Airflow database and user
+	@docker compose up airflow-init
+
+airflow-up: ## Start Airflow and Postgres Warehouse
+	@docker compose up -d
+
+airflow-down: ## Stop Airflow and Postgres
+	@docker compose down -v
 
 ingest: ## Run Dockerized Pipeline (Extract + Write Local)
 	@docker run --rm --env-file .env \
