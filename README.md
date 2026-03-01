@@ -4,13 +4,13 @@
 
 End-to-end data engineering platform demonstrating production-grade ingestion, transformation, orchestration, and analytics.
 
-**Status:** Blocks 1-4 Complete | Dockerized Python Ingestion + CI/CD + Postgres Staging + AWS S3 Data Lake
+**Status:** Blocks 1-5 Complete | Dockerized Python Ingestion + CI/CD + Postgres Staging + AWS S3 + Airflow Orchestration
 
 ### Tech Stack
 - **Languages:** Python (Pandas, PyArrow, Boto3), SQL(PostgreSQL)
-- **Tools:** Docker, Docker Compose, Git/GitHub, GitHub Actions, Make, Pytest, Ruff, Mypy
+- **Tools:** Docker, Docker Compose, Apache Airflow, Git/GitHub, GitHub Actions, Make, Pytest, Ruff, Mypy
 - **Storage:** PostgreSQL (dockerized), Local Data Lake, AWS S3
-- **Planned:** Spark/AWS Glue, Snowflake, dbt, Airflow, Streamlit
+- **Planned:** Spark/AWS Glue, Snowflake, dbt, Streamlit, end to end Airflow Orchestration
 
 ---
 
@@ -267,12 +267,41 @@ Packaged the ingestion pipeline into a reproducible Docker container and impleme
 docker build -t de-ingest .
 docker run --env-file .env de-ingest --run-date 2026-01-31 --location Boston
 ```
+
+## Block 5: Airflow Orchestration
+
+Implemented a local Apache Airflow environment using Docker Compose to orchestrate the daily ingestion pipeline.
+
+### What's Implemented
+- **Isolated Execution (`DockerOperator`):** Decoupled execution by running the ingestion job inside ephemeral Docker containers (`de-ingest`) rather than on the Airflow worker directly, preventing dependency conflicts.
+- **Dynamic Templating:** Utilized Airflow's native Jinja templating (`{{ ds }}`) to dynamically pass the logical execution date to the Python CLI's `--run-date` parameter.
+- **Idempotent Backfilling:** Enabled historical data loads using Airflow's CLI backfill capabilities without altering any underlying code.
+- **Secure Secret Injection:** Used python-dotenv in the DAG to securely load environment variables from .env and inject AWS credentials into the isolated container, bypassing Airflow's Jinja template restrictions.
+
+### Running Airflow Locally
+
+**1. Build the ingestion image (Run anytime you update python code):**
+`make build`
+
+**2. Initialize the Airflow database and user (Run once on first setup, or after wiping Docker volumes):**
+`make airflow-init`
+
+**3. Start the Airflow webserver, scheduler, and Postgres:**
+`make airflow-up`
+
+Access the UI at `http://localhost:8080` (Username: `airflow`, Password: `airflow`).
+
 ## Project Structure (Current)
 
 ```
 e2e-de/
 ├── .github/workflows/
 │   └── ci.yml                     # GitHub Actions CI/CD pipeline
+├── airflow/
+│   ├── dags/
+│   │   └── ingestion_dag.py       # Airflow DAG for daily ingestion
+│   ├── logs/                      # Airflow task execution logs
+│   └── plugins/                   # Custom Airflow plugins (placeholder)
 ├── src/pipeline/
 │   ├── config.py                  # Environment config + path generation
 │   ├── run.py                     # CLI entry point (ingestion)
@@ -295,7 +324,7 @@ e2e-de/
 │   └── queries/                   # Analytical SQL queries
 ├── Dockerfile                     # Python containerization blueprint
 ├── conftest.py                    # Pytest configuration file
-├── docker-compose.yml             # Postgres service definition
+├── docker-compose.yml             # Airflow & Postgres service definition
 ├── infra.md                       # Cloud architecture & security docs
 ├── Makefile                       # Single-command developer experience
 ├── requirements.txt               # Python dependencies
@@ -332,6 +361,10 @@ See `.env.example` for the full configuration template.
 make help                                    # Show all available commands
 make up                                      # Start Docker services (Postgres)
 make down                                    # Stop Docker services
+make build                                   # Build the de-ingest Docker image
+make airflow-init                            # Initialize Airflow metadata database
+make airflow-up                              # Start Airflow and Postgres containers
+make airflow-down                            # Spin down Airflow containers and remove volumes
 make ingest RUN_DATE=2026-01-31 LOCATION=Boston     # Run Dockerized Python ingestion pipeline
 make ingest-s3 RUN_DATE=2026-01-31 LOCATION=Boston  # Run Dockerized ingestion + upload to S3
 make schema                                  # Create Postgres schema (staging + dimensions + facts)
@@ -365,7 +398,7 @@ make clean                                   # Remove local data lake files
 - [x] **Block 2** - SQL foundations + star schema modeling (Postgres in Docker)
 - [x] **Block 3** - AWS S3 data lake layout with IAM + partitioned uploads
 - [x] **Block 4** - Dockerize ingestion + GitHub Actions CI (lint, test, type hint)
-- [ ] **Block 5** - Airflow orchestration (DAG with parameterized run_date, retries, backfills)
+- [x] **Block 5** - Airflow orchestration (DAG with parameterized run_date, retries, backfills)
 - [ ] **Block 6** - Spark transformations via AWS Glue (silver to gold, partitioned Parquet)
 - [ ] **Block 7** - Snowflake warehouse load (stage + COPY INTO + MERGE for idempotency)
 - [ ] **Block 8** - dbt transformations, tests, and documentation on Snowflake
@@ -382,7 +415,8 @@ make clean                                   # Remove local data lake files
 | Block 2: Postgres + SQL | Complete |
 | Block 3: S3 + IAM Security | Complete |
 | Block 4: Docker & CI/CD | Complete |
-| Blocks 5-10 | Planned |
+| Block 5: Airflow Orchestration | Complete |
+| Blocks 6-10 | Planned |
 
 **Last Updated:** February 2026
 
