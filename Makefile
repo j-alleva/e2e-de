@@ -1,7 +1,7 @@
-.PHONY: help up down ingest ingest-s3 schema load warehouse queries clean airflow-init airflow-up airflow-down build
+.PHONY: help down ingest ingest-s3 schema load warehouse queries clean airflow-init airflow-up airflow-down build
 
 help:
-	@echo "Available: up, down, ingest, ingest-s3, schema, load, warehouse, queries, clean"
+	@echo "Available: down ingest ingest-s3 schema load warehouse queries clean airflow-init airflow-up airflow-down build"
 
 down: ## Stop Docker
 	@docker compose down
