@@ -3,9 +3,6 @@
 help:
 	@echo "Available: up, down, ingest, ingest-s3, schema, load, warehouse, queries, clean"
 
-up:  ## Start Docker
-	@docker compose up -d
-
 down: ## Stop Docker
 	@docker compose down
 
