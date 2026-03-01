@@ -1,4 +1,4 @@
-.PHONY: help up down ingest ingest-s3 schema load warehouse queries clean airflow-init airflow-up airflow-down
+.PHONY: help up down ingest ingest-s3 schema load warehouse queries clean airflow-init airflow-up airflow-down build
 
 help:
 	@echo "Available: up, down, ingest, ingest-s3, schema, load, warehouse, queries, clean"
@@ -8,6 +8,9 @@ up:  ## Start Docker
 
 down: ## Stop Docker
 	@docker compose down
+
+build: ## Build de-ingest Docker image
+	@docker build -t de-ingest .
 
 airflow-init: ## Initialize Airflow database and user
 	@docker compose up airflow-init
