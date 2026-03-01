@@ -354,6 +354,8 @@ See `.env.example` for the full configuration template.
 | `AWS_SECRET_ACCESS_KEY` | (user-supplied) | AWS programmatic user secret |
 | `AWS_BUCKET_NAME` | (user-supplied) | S3 bucket name |
 | `AWS_REGION` | (user-supplied) | AWS region (e.g., us-east-2) |
+| `AIRFLOW_UID` | (user-supplied) | Local user ID for Airflow |
+| `HOST_PROJECT_PATH` | (user-supplied) | Local project path directory for Airflow access |
 
 ### Make Commands
 
