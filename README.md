@@ -311,7 +311,7 @@ e2e-de/
 │   │   ├── validate.py            # Schema + data quality checks
 │   │   └── normalize.py           # Bronze --> silver transformation
 │   ├── io/
-│   │   ├── local.py               # Local filesystem I/O (Currently Empty)
+│   │   ├── local.py               # Local filesystem I/O
 │   │   └── s3.py                  # AWS S3 I/O wrapper (boto3)
 │   └── transform/
 │       └── pandas_transform.py    # Python-based transformations
