@@ -12,4 +12,4 @@ Docker is better than bare Python venv for this project because:
 We lose negligible local iteration speed, but we accept that because the orchestration clarity and environment consistency across dev/CI/production outweighs the overhead.
 
 ## Status
-Accepted. Implemented. Validating (Airflow integration).
+Accepted. Implemented. Validated.
