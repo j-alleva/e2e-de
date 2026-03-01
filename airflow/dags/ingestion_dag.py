@@ -5,6 +5,7 @@ Parameterized by {{ ds }} (logical run date) for backfill support.
 """
 
 import os
+from dotenv import dotenv_values
 from datetime import datetime, timedelta
 from airflow import DAG
 from airflow.providers.docker.operators.docker import DockerOperator
@@ -13,6 +14,8 @@ from docker.types import Mount
 HOST_PROJECT_PATH = os.getenv("HOST_PROJECT_PATH")
 if not HOST_PROJECT_PATH:
     raise ValueError("HOST_PROJECT_PATH not set in .env") 
+
+env_vars = dotenv_values("/opt/airflow/.env")
 
 default_args = {
     'owner': 'data_engineer',
@@ -39,14 +42,14 @@ with DAG(
 
         # Remove container after run to avoid dead container buildup
         auto_remove='force',
-        
+
         command='--run-date {{ ds }} --location "Boston" --write-s3',
         docker_url='unix://var/run/docker.sock',
 
         # Compose network - allows de-ingest to reach de_postgres
         network_mode='e2e-de_default',
 
-        env_file=f"{HOST_PROJECT_PATH}/.env",
+        environment=env_vars,
         mounts=[
             Mount(source=f"{HOST_PROJECT_PATH}/data", target="/app/data", type="bind")
         ]
