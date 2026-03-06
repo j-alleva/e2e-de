@@ -28,6 +28,7 @@ args = getResolvedOptions(sys.argv, [
 sc = SparkContext.getOrCreate()
 glueContext = GlueContext(sc)
 spark = glueContext.spark_session
+spark.conf.set("spark.sql.sources.partitionOverwriteMode", "dynamic")
 
 job = Job(glueContext)
 job.init(args['JOB_NAME'], args)
@@ -46,7 +47,7 @@ logger.info(f"Reading Silver Parquet data from: {silver_path}")
 try:
     raw_df = spark.read.parquet(silver_path)
     record_count = raw_df.count()
-    logger.info(f"Successfully loaded {record_count} records from the Silver layer.")
+    print(f"Successfully loaded {record_count} records from the Silver layer.")
 
 except Exception as e:
     logger.error(f"Failed to read data from {silver_path}. Error: {str(e)}")
@@ -75,13 +76,13 @@ logger.info("Transformations applied successfully.")
 
 # --- row count validation ---
 gold_count = curated_df.count()
-logger.info(f"Gold layer record count: {gold_count}")
+print(f"Gold layer record count: {gold_count}")
 
 if record_count != gold_count:
     logger.error(f"Validation failed! Silver count ({record_count}) != Gold count ({gold_count}).")
     sys.exit(1)
 else:
-    logger.info("Validation passed: Silver and Gold record counts match.")
+    print("Validation passed: Silver and Gold record counts match.")
 
 # --- configure and execute write to gold parquet ---
 logger.info("Starting data load to Gold layer...")
