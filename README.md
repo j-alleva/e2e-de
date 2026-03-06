@@ -4,13 +4,13 @@
 
 End-to-end data engineering platform demonstrating production-grade ingestion, transformation, orchestration, and analytics.
 
-**Status:** Blocks 1-5 Complete | Dockerized Python Ingestion + CI/CD + Postgres Staging + AWS S3 + Airflow Orchestration
+**Status:** Blocks 1-6 Complete | Dockerized Python Ingestion + CI/CD + Postgres Staging + AWS S3 + Airflow + AWS Glue (PySpark)
 
 ### Tech Stack
-- **Languages:** Python (Pandas, PyArrow, Boto3), SQL(PostgreSQL)
-- **Tools:** Docker, Docker Compose, Apache Airflow, Git/GitHub, GitHub Actions, Make, Pytest, Ruff, Mypy
+- **Languages:** Python (Pandas, PyArrow, Boto3, PySpark), SQL(PostgreSQL)
+- **Tools:** Docker, Docker Compose, Apache Airflow, AWS Glue, Git/GitHub, GitHub Actions, Make, Pytest, Ruff, Mypy
 - **Storage:** PostgreSQL (dockerized), Local Data Lake, AWS S3
-- **Planned:** Spark/AWS Glue, Snowflake, dbt, Streamlit, end to end Airflow Orchestration
+- **Planned:** Snowflake, dbt, Streamlit, end to end Airflow Orchestration
 
 ---
 
@@ -291,6 +291,15 @@ Implemented a local Apache Airflow environment using Docker Compose to orchestra
 
 Access the UI at `http://localhost:8080` (Username: `airflow`, Password: `airflow`).
 
+## Block 6: AWS Glue & PySpark Transformations
+
+Transitioned data transformations from local execution to a distributed cloud environment using AWS Glue. Built a serverless PySpark ETL job to read from the S3 Silver layer, curate the data, and write to a finalized S3 Gold layer.
+
+### What's Implemented
+- **Serverless PySpark ETL:** Developed `glue_job.py` to handle large-scale data curation, enforcing schema consistency and generating our final analysis ready Parquet datasets.
+- **Dynamic Partition Overwrites:** Configured Spark (`spark.sql.sources.partitionOverwriteMode`) to safely overwrite only the current `run_date` partitions without wiping the entire S3 Gold layer, enabling strict idempotency and backfill capability.
+- **Data Quality Validation:** Integrated row count validation logic directly into the Spark script to guarantee 1:1 record matching between Silver inputs and Gold outputs, writing custom logging to AWS CloudWatch.
+
 ## Project Structure (Current)
 
 ```
@@ -320,8 +329,10 @@ e2e-de/
 │   ├── test_config.py             # Pytest unit tests (config)
 │   └── test_pipeline.py           # Pytest unit tests (validation & normalization)
 ├── sql/
-│   ├── postgres/                  # DDL and population scripts
-│   └── queries/                   # Analytical SQL queries
+│   ├── postgres/                  # DDL and population scripts
+│   └── queries/                   # Analytical SQL queries
+├── spark/
+│   └── glue_job.py                # PySpark ETL script for AWS Glue transformations
 ├── Dockerfile                     # Python containerization blueprint
 ├── conftest.py                    # Pytest configuration file
 ├── docker-compose.yml             # Airflow & Postgres service definition
@@ -401,7 +412,7 @@ make clean                                   # Remove local data lake files
 - [x] **Block 3** - AWS S3 data lake layout with IAM + partitioned uploads
 - [x] **Block 4** - Dockerize ingestion + GitHub Actions CI (lint, test, type hint)
 - [x] **Block 5** - Airflow orchestration (DAG with parameterized run_date, retries, backfills)
-- [ ] **Block 6** - Spark transformations via AWS Glue (silver to gold, partitioned Parquet)
+- [x] **Block 6** - Spark transformations via AWS Glue (silver to gold, partitioned Parquet)
 - [ ] **Block 7** - Snowflake warehouse load (stage + COPY INTO + MERGE for idempotency)
 - [ ] **Block 8** - dbt transformations, tests, and documentation on Snowflake
 - [ ] **Block 9** - Semantic metrics layer (dbt) + end-to-end Airflow DAG
@@ -418,8 +429,9 @@ make clean                                   # Remove local data lake files
 | Block 3: S3 + IAM Security | Complete |
 | Block 4: Docker & CI/CD | Complete |
 | Block 5: Airflow Orchestration | Complete |
-| Blocks 6-10 | Planned |
+| Block 6: AWS Glue (PySpark) | Complete |
+| Blocks 7-10 | Planned |
 
-**Last Updated:** February 2026
+**Last Updated:** March 2026
 
 **License:** MIT
