@@ -249,6 +249,8 @@ Extended the local ingestion pipeline to support hybrid cloud storage. Implement
 # Ingest and automatically upload to S3
 make ingest-s3 RUN_DATE=2026-02-11 LOCATION=Boston
 ```
+### Data Lake Structure
+![S3 Medallion Architecture](docs/assets/s3_lake.png)
 
 ## Block 4: Dockerization & CI/CD
 
@@ -291,6 +293,9 @@ Implemented a local Apache Airflow environment using Docker Compose to orchestra
 
 Access the UI at `http://localhost:8080` (Username: `airflow`, Password: `airflow`).
 
+### Local Airflow DAG execution
+![Airflow DAG Execution](docs/assets/airflow_dag.png)
+
 ## Block 6: AWS Glue & PySpark Transformations
 
 Transitioned data transformations from local execution to a distributed cloud environment using AWS Glue. Built a serverless PySpark ETL job to read from the S3 Silver layer, curate the data, and write to a finalized S3 Gold layer.
@@ -299,6 +304,9 @@ Transitioned data transformations from local execution to a distributed cloud en
 - **Serverless PySpark ETL:** Developed `glue_job.py` to handle large-scale data curation, enforcing schema consistency and generating our final analysis ready Parquet datasets.
 - **Dynamic Partition Overwrites:** Configured Spark (`spark.sql.sources.partitionOverwriteMode`) to safely overwrite only the current `run_date` partitions without wiping the entire S3 Gold layer, enabling strict idempotency and backfill capability.
 - **Data Quality Validation:** Integrated row count validation logic directly into the Spark script to guarantee 1:1 record matching between Silver inputs and Gold outputs, writing custom logging to AWS CloudWatch.
+
+### Aws Glue Job Success
+![AWS Glue Job Success](docs/assets/glue_runs.png)
 
 ## Block 7: Snowflake Data Warehouse (ELT)
 
@@ -309,6 +317,9 @@ Migrated the final analytical storage layer to Snowflake. Established a secure c
 - **External Staging:** Created an external stage pointing directly to the S3 Gold layer, decoupling storage from compute.
 - **Dynamic Metadata Parsing:** Engineered around PySpark's Hive-partitioning behavior by dynamically extracting `location` and `run_date` from `METADATA$FILENAME` during the `COPY INTO` operation.
 - **Idempotent Upserts:** Developed robust `MERGE INTO` SQL logic to upsert transient staging data into `dim_date`, `dim_location`, and `fact_weather_hourly` tables, guaranteeing zero duplicate rows on pipeline reruns.
+
+### Snowflake Star Schema Query
+![Snowflake Star Schema Query](docs/assets/snowflake_query.png)
 
 ## Project Structure (Current)
 
