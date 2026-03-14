@@ -4,13 +4,13 @@
 
 End-to-end data engineering platform demonstrating production-grade ingestion, transformation, orchestration, and analytics.
 
-**Status:** Blocks 1-6 Complete | Dockerized Python Ingestion + CI/CD + Postgres Staging + AWS S3 + Airflow + AWS Glue (PySpark)
+**Status:** Blocks 1-7 Complete | Dockerized Python Ingestion + CI/CD + Postgres Staging + AWS S3 + Airflow + AWS Glue (PySpark) + Snowflake ELT
 
 ### Tech Stack
 - **Languages:** Python (Pandas, PyArrow, Boto3, PySpark), SQL(PostgreSQL)
 - **Tools:** Docker, Docker Compose, Apache Airflow, AWS Glue, Git/GitHub, GitHub Actions, Make, Pytest, Ruff, Mypy
-- **Storage:** PostgreSQL (dockerized), Local Data Lake, AWS S3
-- **Planned:** Snowflake, dbt, Streamlit, end to end Airflow Orchestration
+- **Storage:** PostgreSQL (dockerized), Local Data Lake, AWS S3, Snowflake
+- **Planned:** dbt, Streamlit, end to end Airflow Orchestration
 
 ---
 
@@ -300,6 +300,16 @@ Transitioned data transformations from local execution to a distributed cloud en
 - **Dynamic Partition Overwrites:** Configured Spark (`spark.sql.sources.partitionOverwriteMode`) to safely overwrite only the current `run_date` partitions without wiping the entire S3 Gold layer, enabling strict idempotency and backfill capability.
 - **Data Quality Validation:** Integrated row count validation logic directly into the Spark script to guarantee 1:1 record matching between Silver inputs and Gold outputs, writing custom logging to AWS CloudWatch.
 
+## Block 7: Snowflake Data Warehouse (ELT)
+
+Migrated the final analytical storage layer to Snowflake. Established a secure cloud handshake with AWS and built an idempotent ELT pipeline to load curated data into a dimensional star schema.
+
+### What's Implemented
+- **Cloud Security:** Configured a Snowflake `STORAGE INTEGRATION` with an AWS IAM Role via a custom trust policy.
+- **External Staging:** Created an external stage pointing directly to the S3 Gold layer, decoupling storage from compute.
+- **Dynamic Metadata Parsing:** Engineered around PySpark's Hive-partitioning behavior by dynamically extracting `location` and `run_date` from `METADATA$FILENAME` during the `COPY INTO` operation.
+- **Idempotent Upserts:** Developed robust `MERGE INTO` SQL logic to upsert transient staging data into `dim_date`, `dim_location`, and `fact_weather_hourly` tables, guaranteeing zero duplicate rows on pipeline reruns.
+
 ## Project Structure (Current)
 
 ```
@@ -333,6 +343,13 @@ e2e-de/
 │   └── queries/                   # Analytical SQL queries
 ├── spark/
 │   └── glue_job.py                # PySpark ETL script for AWS Glue transformations
+├── warehouse/
+│   └── snowflake/                 # Snowflake DDL, Stages, and ELT load scripts
+│       ├── 00_setup.sql           # Provision warehouse, db, schema, storage integration
+│       ├── 01_file_formats.sql    # Define Parquet file format
+│       ├── 02_stages.sql          # Define external S3 stage
+│       ├── 03_copy_into.sql       # Idempotent COPY INTO + star schema MERGEs
+│       └── 04_validation.sql      # Row count, null, and analytical join validation
 ├── Dockerfile                     # Python containerization blueprint
 ├── conftest.py                    # Pytest configuration file
 ├── docker-compose.yml             # Airflow & Postgres service definition
@@ -413,7 +430,7 @@ make clean                                   # Remove local data lake files
 - [x] **Block 4** - Dockerize ingestion + GitHub Actions CI (lint, test, type hint)
 - [x] **Block 5** - Airflow orchestration (DAG with parameterized run_date, retries, backfills)
 - [x] **Block 6** - Spark transformations via AWS Glue (silver to gold, partitioned Parquet)
-- [ ] **Block 7** - Snowflake warehouse load (stage + COPY INTO + MERGE for idempotency)
+- [x] **Block 7** - Snowflake warehouse load (stage + COPY INTO + MERGE for idempotency)
 - [ ] **Block 8** - dbt transformations, tests, and documentation on Snowflake
 - [ ] **Block 9** - Semantic metrics layer (dbt) + end-to-end Airflow DAG
 - [ ] **Block 10** - Streamlit dashboard consuming dbt marts/metrics
@@ -430,7 +447,8 @@ make clean                                   # Remove local data lake files
 | Block 4: Docker & CI/CD | Complete |
 | Block 5: Airflow Orchestration | Complete |
 | Block 6: AWS Glue (PySpark) | Complete |
-| Blocks 7-10 | Planned |
+| Block 7: Snowflake warehouse load (stage + COPY INTO + MERGE for idempotency) | Complete |
+| Blocks 8-10 | Planned |
 
 **Last Updated:** March 2026
 
