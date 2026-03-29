@@ -1,0 +1,10 @@
+version: 2
+
+sources:
+  - name: weather_sources
+    database: warehouse
+    schema: public
+    tables:
+      - name: dim_location
+      - name: dim_date
+      - name: fact_weather_hourly
