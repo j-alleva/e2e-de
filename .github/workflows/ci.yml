@@ -35,3 +35,14 @@ jobs:
       - name: Run tests with Pytest
         run: |
           pytest tests/
+      
+      - name: Compile dbt models
+        working-directory: ./dbt/de_dbt
+        env:
+          SNOWFLAKE_ACCOUNT: ${{ secrets.SNOWFLAKE_ACCOUNT }}
+          SNOWFLAKE_USER: ${{ secrets.SNOWFLAKE_USER }}
+          SNOWFLAKE_PASSWORD: ${{ secrets.SNOWFLAKE_PASSWORD }}
+          SNOWFLAKE_ROLE: ${{ secrets.SNOWFLAKE_ROLE }}
+        run: |
+          dbt deps
+          dbt compile
