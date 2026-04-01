@@ -1,7 +1,7 @@
-.PHONY: help down ingest ingest-s3 schema load warehouse queries clean airflow-init airflow-up airflow-down build
+.PHONY: help down ingest ingest-s3 schema load warehouse queries clean airflow-init airflow-up airflow-down build dbt-debug dbt-run dbt-test dbt-build dbt-docs
 
 help:
-	@echo "Available: down ingest ingest-s3 schema load warehouse queries clean airflow-init airflow-up airflow-down build"
+	@echo "Available: down ingest ingest-s3 schema load warehouse queries clean airflow-init airflow-up airflow-down build dbt-debug dbt-run dbt-test dbt-build dbt-docs"
 
 down: ## Stop Docker
 	@docker compose down
@@ -46,3 +46,18 @@ queries: ## Run All Analytics
 
 clean:
 	@rm -rf data/bronze data/silver
+
+dbt-debug: ## Test dbt Snowflake connection
+	@cd dbt/de_dbt && dbt debug
+
+dbt-run: ## Compile and run dbt models
+	@cd dbt/de_dbt && dbt run
+
+dbt-test: ## Run dbt data quality tests
+	@cd dbt/de_dbt && dbt test
+
+dbt-build: ## Build and test dbt models in one step
+	@cd dbt/de_dbt && dbt build
+
+dbt-docs: ## Generate and locally serve dbt documentation
+	@cd dbt/de_dbt && dbt docs generate && dbt docs serve
