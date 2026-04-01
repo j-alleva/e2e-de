@@ -4,13 +4,13 @@
 
 End-to-end data engineering platform demonstrating production-grade ingestion, transformation, orchestration, and analytics.
 
-**Status:** Blocks 1-7 Complete | Dockerized Python Ingestion + CI/CD + Postgres Staging + AWS S3 + Airflow + AWS Glue (PySpark) + Snowflake ELT
+**Status:** Blocks 1-8 Complete | Dockerized Python Ingestion + CI/CD + Postgres Staging + AWS S3 + Airflow + AWS Glue (PySpark) + Snowflake ELT + dbt
 
 ### Tech Stack
 - **Languages:** Python (Pandas, PyArrow, Boto3, PySpark), SQL(PostgreSQL)
-- **Tools:** Docker, Docker Compose, Apache Airflow, AWS Glue, Git/GitHub, GitHub Actions, Make, Pytest, Ruff, Mypy
+- **Tools:** dbt, Docker, Docker Compose, Apache Airflow, AWS Glue, Git/GitHub, GitHub Actions, Make, Pytest, Ruff, Mypy
 - **Storage:** PostgreSQL (dockerized), Local Data Lake, AWS S3, Snowflake
-- **Planned:** dbt, Streamlit, end to end Airflow Orchestration
+- **Planned:** Streamlit, end to end Airflow Orchestration
 
 ---
 
@@ -321,6 +321,19 @@ Migrated the final analytical storage layer to Snowflake. Established a secure c
 ### Snowflake Star Schema Query
 ![Snowflake Star Schema Query](docs/assets/snowflake_query.png)
 
+## Block 8: dbt (Data Build Tool) Analytics Engineering
+
+Implemented a modular data transformation layer on top of Snowflake using dbt, converting raw staging tables into tested, documented, business-ready data marts. 
+
+### What's Implemented
+- **Modular Data Modeling:** Abstracted raw Snowflake tables using `source()` macros and built a clean DAG flowing from staging views into a final aggregated `mart_daily_weather_summary` table.
+- **Automated Data Quality Tests:** Defined strict YAML assertions (`unique`, `not_null`, and `relationships`) to mathematically guarantee primary key integrity and referential foreign-key consistency before data hits the BI layer.
+- **Auto-Generated Documentation:** Leveraged dbt to automatically parse SQL descriptions and generate an interactive data dictionary and Lineage Graph (DAG) for business stakeholders.
+- **CI Integration:** Upgraded the GitHub Actions pipeline to run `dbt compile` on every push, ensuring all SQL syntax and YAML configurations are valid before merging to the `main` branch.
+
+### dbt Lineage Graph (DAG)
+![dbt DAG](docs/assets/dbt_dag.png)
+
 ## Project Structure (Current)
 
 ```
@@ -354,6 +367,12 @@ e2e-de/
 │   └── queries/                   # Analytical SQL queries
 ├── spark/
 │   └── glue_job.py                # PySpark ETL script for AWS Glue transformations
+├── dbt/de_dbt/                    # dbt transformation project
+│   ├── models/                    # SQL transformation models
+│   │   ├── staging/               # Source definitions and lightweight stg_ views
+│   │   └── marts/                 # Aggregated business logic (daily weather summaries)
+│   ├── dbt_project.yml            # Main dbt project configuration
+│   └── profiles.yml               # Snowflake connection settings
 ├── warehouse/
 │   └── snowflake/                 # Snowflake DDL, Stages, and ELT load scripts
 │       ├── 00_setup.sql           # Provision warehouse, db, schema, storage integration
@@ -442,7 +461,7 @@ make clean                                   # Remove local data lake files
 - [x] **Block 5** - Airflow orchestration (DAG with parameterized run_date, retries, backfills)
 - [x] **Block 6** - Spark transformations via AWS Glue (silver to gold, partitioned Parquet)
 - [x] **Block 7** - Snowflake warehouse load (stage + COPY INTO + MERGE for idempotency)
-- [ ] **Block 8** - dbt transformations, tests, and documentation on Snowflake
+- [x] **Block 8** - dbt transformations, tests, and documentation on Snowflake
 - [ ] **Block 9** - Semantic metrics layer (dbt) + end-to-end Airflow DAG
 - [ ] **Block 10** - Streamlit dashboard consuming dbt marts/metrics
 
@@ -459,8 +478,9 @@ make clean                                   # Remove local data lake files
 | Block 5: Airflow Orchestration | Complete |
 | Block 6: AWS Glue (PySpark) | Complete |
 | Block 7: Snowflake warehouse load (stage + COPY INTO + MERGE for idempotency) | Complete |
-| Blocks 8-10 | Planned |
+| Block 8: dbt Analytics Engineering | Complete |
+| Blocks 9-10 | Planned |
 
-**Last Updated:** March 2026
+**Last Updated:** April 2026
 
 **License:** MIT
