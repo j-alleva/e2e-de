@@ -1,0 +1,71 @@
+version: 2
+
+models:
+  - name: metricflow_time_spine
+    time_spine:
+      standard_granularity_column: date_day
+    columns:
+      - name: date_day
+        granularity: day
+
+semantic_models:
+  - name: sm_daily_weather_summary
+    description: "Semantic model mapping the physical daily weather summary mart to logical concepts."
+    model: ref('mart_daily_weather_summary')
+    
+    defaults:
+      agg_time_dimension: summary_date
+
+    entities:
+      - name: summary_id
+        type: primary
+      - name: location_id
+        type: foreign
+      - name: date_id
+        type: foreign
+
+    dimensions:
+      - name: summary_date
+        type: time
+        type_params:
+          time_granularity: day
+      - name: location_name
+        type: categorical
+      - name: is_weekend
+        type: categorical
+
+    measures:
+      - name: total_precipitation
+        description: "Sum of total precipitation in millimeters"
+        expr: total_precipitation_mm
+        agg: sum
+      - name: avg_temperature
+        description: "Average temperature in Celsius"
+        expr: avg_temp_c
+        agg: average
+      - name: max_wind_speed
+        description: "Maximum wind speed in km/h"
+        expr: max_wind_speed_kmh
+        agg: max
+
+metrics:
+  - name: average_daily_temperature
+    description: "The average daily temperature across locations."
+    type: simple
+    label: "Average Daily Temp (C)"
+    type_params:
+      measure: avg_temperature
+
+  - name: total_daily_precipitation
+    description: "The total daily precipitation across locations."
+    type: simple
+    label: "Total Precipitation (mm)"
+    type_params:
+      measure: total_precipitation
+
+  - name: max_daily_wind_speed
+    description: "The maximum recorded wind speed."
+    type: simple
+    label: "Max Wind Speed (km/h)"
+    type_params:
+      measure: max_wind_speed
