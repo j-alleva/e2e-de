@@ -4,13 +4,13 @@
 
 End-to-end data engineering platform demonstrating production-grade ingestion, transformation, orchestration, and analytics.
 
-**Status:** Blocks 1-8 Complete | Dockerized Python Ingestion + CI/CD + Postgres Staging + AWS S3 + Airflow + AWS Glue (PySpark) + Snowflake ELT + dbt
+**Status:** Blocks 1-9 Complete | Dockerized Python Ingestion + CI/CD + Postgres Staging + AWS S3 + Airflow End-to-End Orchestration + AWS Glue (PySpark) + Snowflake ELT + dbt
 
 ### Tech Stack
 - **Languages:** Python (Pandas, PyArrow, Boto3, PySpark), SQL(PostgreSQL)
 - **Tools:** dbt, Docker, Docker Compose, Apache Airflow, AWS Glue, Git/GitHub, GitHub Actions, Make, Pytest, Ruff, Mypy
 - **Storage:** PostgreSQL (dockerized), Local Data Lake, AWS S3, Snowflake
-- **Planned:** Streamlit, end to end Airflow Orchestration
+- **Planned:** Streamlit
 
 ---
 
@@ -334,6 +334,20 @@ Implemented a modular data transformation layer on top of Snowflake using dbt, c
 ### dbt Lineage Graph (DAG)
 ![dbt DAG](docs/assets/dbt_dag.png)
 
+## Block 9: End-to-End Pipeline Orchestration & Idempotency
+
+Synthesized all standalone components into a single, automated Apache Airflow DAG (`weather_end_to_end_pipeline`), orchestrating the entire lifecycle from API extraction to business-ready dbt reporting. 
+
+### What's Implemented
+- **Multi-Operator Orchestration:** Chained tasks using distinct execution strategies: `DockerOperator` for isolated Python ingestion and dbt execution, `GlueJobOperator` for serverless Spark, and `SnowflakeOperator` for cloud data warehousing.
+- **Strict Idempotency Validation:** Engineered the pipeline to handle failure recovery safely. "Clear and Rerun" tests prove that S3 partition overwrites and Snowflake `MERGE` statements gracefully update existing rows without duplicating data.
+
+### Airflow End-to-End Success
+![Airflow End-to-End Success](docs/assets/airflow_e2e_success.png)
+
+### Snowflake Data Mart
+![Snowflake Final Mart](docs/assets/snowflake_final_mart.png)
+
 ## Project Structure (Current)
 
 ```
@@ -462,7 +476,7 @@ make clean                                   # Remove local data lake files
 - [x] **Block 6** - Spark transformations via AWS Glue (silver to gold, partitioned Parquet)
 - [x] **Block 7** - Snowflake warehouse load (stage + COPY INTO + MERGE for idempotency)
 - [x] **Block 8** - dbt transformations, tests, and documentation on Snowflake
-- [ ] **Block 9** - Semantic metrics layer (dbt) + end-to-end Airflow DAG
+- [x] **Block 9** - Semantic metrics layer (dbt) + end-to-end Airflow DAG
 - [ ] **Block 10** - Streamlit dashboard consuming dbt marts/metrics
 
 ---
@@ -479,7 +493,8 @@ make clean                                   # Remove local data lake files
 | Block 6: AWS Glue (PySpark) | Complete |
 | Block 7: Snowflake warehouse load (stage + COPY INTO + MERGE for idempotency) | Complete |
 | Block 8: dbt Analytics Engineering | Complete |
-| Blocks 9-10 | Planned |
+| Block 9: End to End Airflow Orchestration | Complete |
+| Block 10 | Planned |
 
 **Last Updated:** April 2026
 
