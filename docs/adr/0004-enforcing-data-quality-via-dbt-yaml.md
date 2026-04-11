@@ -12,4 +12,4 @@ dbt testing is better for this pipeline because:
 We consume slightly more Snowflake compute credits during a `dbt build` run to execute the test queries, but we accept that because catching bad data before it reaches the BI/dashboarding layer preserves business trust.
 
 ## Status
-Accepted. Implemented. Locally validated. CI test enforcement pending.
+Accepted. Implemented. Validated.
