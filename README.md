@@ -8,9 +8,8 @@ End-to-end data engineering platform demonstrating production-grade ingestion, t
 
 ### Tech Stack
 - **Languages:** Python (Pandas, PyArrow, Boto3, PySpark), SQL(PostgreSQL)
-- **Tools:** dbt, Docker, Docker Compose, Apache Airflow, AWS Glue, Git/GitHub, GitHub Actions, Make, Pytest, Ruff, Mypy
+- **Tools:** dbt, Docker, Docker Compose, Apache Airflow, AWS Glue, Git/GitHub, GitHub Actions, Make, Pytest, Ruff, Mypy, Streamlit
 - **Storage:** PostgreSQL (dockerized), Local Data Lake, AWS S3, Snowflake
-- **Planned:** Streamlit
 
 ---
 
@@ -348,6 +347,25 @@ Synthesized all standalone components into a single, automated Apache Airflow DA
 ### Snowflake Data Mart
 ![Snowflake Final Mart](docs/assets/snowflake_final_mart.png)
 
+## Block 10: Consumption Layer (Streamlit)
+
+The final layer of the project is an interactive **Streamlit** web application that provides stakeholder facing analytics, proving the downstream value of the data pipeline.
+
+### What's Implemented
+- **Direct Snowflake Integration:** Connects to the data warehouse using Streamlit's native connection protocols.
+- **Governed Metrics:** Queries are strictly limited to the final `mart_daily_weather_summary` dbt mart, ensuring stakeholders only see tested, documented, and approved metrics.
+- **Performance Caching:** Implemented `@st.cache_data` to cache query results in memory. This allows instant UI filtering (by location or date) without retriggering Snowflake compute, significantly reducing cloud costs.
+- **Dynamic Visualizations:** Calculates 4 KPIs and renders multi-dimensional time-series charts for temperature, precipitation, wind, and humidity.
+
+### Dashboard View
+![Streamlit Dashboard](docs/assets/streamlit_dashboard.png)
+
+### Running the Dashboard Locally
+
+```bash
+# Ensure your Snowflake credentials are in streamlit/.streamlit/secrets.toml
+make app
+
 ## Project Structure (Current)
 
 ```
@@ -394,6 +412,10 @@ e2e-de/
 │       ├── 02_stages.sql          # Define external S3 stage
 │       ├── 03_copy_into.sql       # Idempotent COPY INTO + star schema MERGEs
 │       └── 04_validation.sql      # Row count, null, and analytical join validation
+├── streamlit/                     # Stakeholder consumption layer
+│   ├── app.py                     # Streamlit dashboard logic
+│   └── .streamlit/
+│       └── secrets.toml.example   # Template for Snowflake credentials
 ├── Dockerfile                     # Python containerization blueprint
 ├── conftest.py                    # Pytest configuration file
 ├── docker-compose.yml             # Airflow & Postgres service definition
@@ -477,7 +499,7 @@ make clean                                   # Remove local data lake files
 - [x] **Block 7** - Snowflake warehouse load (stage + COPY INTO + MERGE for idempotency)
 - [x] **Block 8** - dbt transformations, tests, and documentation on Snowflake
 - [x] **Block 9** - Semantic metrics layer (dbt) + end-to-end Airflow DAG
-- [ ] **Block 10** - Streamlit dashboard consuming dbt marts/metrics
+- [x] **Block 10** - Streamlit dashboard consuming dbt marts/metrics
 
 ---
 
@@ -494,7 +516,7 @@ make clean                                   # Remove local data lake files
 | Block 7: Snowflake warehouse load (stage + COPY INTO + MERGE for idempotency) | Complete |
 | Block 8: dbt Analytics Engineering | Complete |
 | Block 9: End to End Airflow Orchestration | Complete |
-| Block 10 | Planned |
+| Block 10: Consumption Layer (Streamlit) | Complete |
 
 **Last Updated:** April 2026
 
