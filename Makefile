@@ -1,7 +1,7 @@
-.PHONY: help down ingest ingest-s3 schema load warehouse queries clean airflow-init airflow-up airflow-down build dbt-debug dbt-run dbt-test dbt-build dbt-docs
+.PHONY: help down ingest ingest-s3 schema load warehouse queries clean airflow-init airflow-up airflow-down build dbt-debug dbt-run dbt-test dbt-build dbt-docs app
 
 help:
-	@echo "Available: down ingest ingest-s3 schema load warehouse queries clean airflow-init airflow-up airflow-down build dbt-debug dbt-run dbt-test dbt-build dbt-docs"
+	@echo "Available: down ingest ingest-s3 schema load warehouse queries clean airflow-init airflow-up airflow-down build dbt-debug dbt-run dbt-test dbt-build dbt-docs app"
 
 down: ## Stop Docker
 	@docker compose down
@@ -60,4 +60,8 @@ dbt-build: ## Build and test dbt models in one step
 	@cd dbt/de_dbt && dbt build
 
 dbt-docs: ## Generate and locally serve dbt documentation
-	@cd dbt/de_dbt && dbt docs generate && dbt docs serve
+	@cd dbt/de_dbt && dbt docs generate && dbt docs 
+	
+app: ## Run the Streamlit consumption dashboard locally
+	@echo "Starting Streamlit app..."
+	@streamlit run streamlit/app.py
