@@ -365,6 +365,7 @@ The final layer of the project is an interactive **Streamlit** web application t
 ```bash
 # Ensure your Snowflake credentials are in streamlit/.streamlit/secrets.toml
 make app
+```
 
 ## Project Structure (Current)
 
