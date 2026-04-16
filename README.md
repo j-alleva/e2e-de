@@ -4,7 +4,7 @@
 
 End-to-end data engineering platform demonstrating production-grade ingestion, transformation, orchestration, and analytics.
 
-**Status:** Blocks 1-9 Complete | Dockerized Python Ingestion + CI/CD + Postgres Staging + AWS S3 + Airflow End-to-End Orchestration + AWS Glue (PySpark) + Snowflake ELT + dbt
+**Status:** Complete | Dockerized Python Ingestion + CI/CD + Postgres Staging + AWS S3 + Airflow End-to-End Orchestration + AWS Glue (PySpark) + Snowflake ELT + dbt + Streamlit
 
 ### Tech Stack
 - **Languages:** Python (Pandas, PyArrow, Boto3, PySpark), SQL(PostgreSQL)
