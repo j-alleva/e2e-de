@@ -5,11 +5,14 @@ This runbook outlines the operational procedures for executing, monitoring, and 
 
 ## 1. Local Environment Setup & Execution
 
-The project relies on a Makefile to abstract away Docker network configurations and provide a single command developer experience.
+The project relies on a Makefile to abstract away Docker network configurations and provide a streamlined developer workflow.
+
 
 ### Prerequisites
 
 Before running the pipeline, ensure your `.env` file is populated. You must explicitly set `HOST_PROJECT_PATH` (your absolute local directory path) as it is required for Airflow's DockerOperator volume mounts.
+
+The documented commands assume a Bash-compatible shell. On Windows, prefer Git Bash or WSL so the Makefile targets and multiline commands run as written.
 
 ### Quick Start
 
@@ -78,7 +81,7 @@ docker exec -it airflow_scheduler airflow dags backfill \
 
 **Root Cause:** The `HOST_PROJECT_PATH` environment variable is either missing in the `.env` file or points to an incorrect directory, preventing the Docker socket from binding the local `/data` or `/dbt` folders to the temporary containers.
 
-**Resolution:** Verify `HOST_PROJECT_PATH` in `.env` matches your exact `$(pwd)` output. Restart Airflow (`make down` then `make airflow-up`).
+**Resolution:** Verify `HOST_PROJECT_PATH` in `.env` matches your absolute project path. In a Bash-compatible shell, this should match your exact `$(pwd)` output. Restart Airflow (`make down` then `make airflow-up`).
 
 ### 2. GlueJobOperator Fails or Times Out
 
