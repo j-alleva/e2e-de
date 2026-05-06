@@ -2,523 +2,267 @@
 
 [![CI Pipeline](https://github.com/j-alleva/e2e-de/actions/workflows/ci.yml/badge.svg)](https://github.com/j-alleva/e2e-de/actions/workflows/ci.yml)
 
-End-to-end data engineering platform demonstrating production-grade ingestion, transformation, orchestration, and analytics.
+![Architecture Diagram](docs/assets/architecture.png)
 
-**Status:** Complete | Dockerized Python Ingestion + CI/CD + Postgres Staging + AWS S3 + Airflow End-to-End Orchestration + AWS Glue (PySpark) + Snowflake ELT + dbt + Streamlit
+End-to-end data engineering portfolio project covering parameterized ingestion, layered validation, lake storage, Spark transformation, Snowflake loading, dbt modeling, semantic metrics, and dashboard consumption. The pipeline fetches weather data from Open-Meteo, writes Bronze and Silver artifacts locally and optionally to S3, curates Gold data with AWS Glue, loads Snowflake with idempotent `MERGE` logic, builds dbt staging and mart models plus a semantic layer with metrics and a MetricFlow time spine, and serves a Streamlit dashboard. The full cloud path is orchestrated through Apache Airflow and supports historical backfills.
 
-### Tech Stack
-- **Languages:** Python (Pandas, PyArrow, Boto3, PySpark), SQL(PostgreSQL)
-- **Tools:** dbt, Docker, Docker Compose, Apache Airflow, AWS Glue, Git/GitHub, GitHub Actions, Make, Pytest, Ruff, Mypy, Streamlit
-- **Storage:** PostgreSQL (dockerized), Local Data Lake, AWS S3, Snowflake
+![Pipeline Demo](docs/assets/demo.gif)
 
 ---
 
-## Architecture
+## Tech Stack
 
-```
-API (Open-Meteo)
-    --> Dockerized Python Ingestion (fetch --> validate --> normalize)
-        --> Local Data Lake (Bronze JSON --> Silver Parquet)
-            --> [Optional] AWS S3 Backup (Bronze/Silver)
-            --> Postgres (raw_weather staging --> dim/fact star schema)
-                --> Analytical SQL queries
-```
-
-**Target Architecture (end of project):**
-
-```
-API --> Dockerized Python Ingestion --> S3 (bronze/silver)
-    --> AWS Glue Spark --> S3 (gold/curated Parquet)
-        --> Snowflake COPY INTO --> dbt (staging/marts + tests + metrics)
-            --> Streamlit dashboard
-```
+- **Orchestration:** Apache Airflow (Docker-based, daily scheduling, retry and backfill support)
+- **Ingestion:** Python (`requests`, Pandas, PyArrow, Boto3)
+- **Transformation:** PySpark via AWS Glue, dbt on Snowflake
+- **Storage:** Local Bronze/Silver lake, AWS S3 Bronze/Silver/Gold, Snowflake warehouse
+- **Analytics:** Streamlit (direct Snowflake connection with cached queries)
+- **DevOps:** Docker, Docker Compose, GitHub Actions, Make, Ruff, mypy, pytest
+- **Languages:** Python, SQL, YAML
 
 ---
 
-## Block 1: Python Ingestion Pipeline
+## Operational Docs
 
-Built a parameterized ingestion job with schema validation and reproducible run-date partitioning; writes raw JSON and cleaned Parquet outputs with logging.
+The project includes separate operational documentation for runtime behavior, costs, and failure handling:
 
-### What's Implemented
+- **[Current Operational Design & Failure Modes](docs/production_design.md)** — implemented resiliency patterns, rerun behavior, and data quality controls
+- **[System Costs & Hard Limits](docs/costs_and_limits.md)** — verified configuration, observed runtime, and conservative pricing guidance
+- **[Pipeline Runbook & Operations Guide](docs/runbook.md)** — local setup, backfill workflow, and troubleshooting steps
 
-- **Parameterized CLI** - Run pipeline for any date/location combination
-- **Bronze Layer** - Raw JSON from Open-Meteo API (immutable, partitioned by run_date)
-- **Silver Layer** - Cleaned Parquet with schema validation and type normalization
-- **Data Quality** - Schema compliance checks, duplicate detection on natural key (location + timestamp)
-- **Idempotent** - Re-running the same run_date overwrites outputs deterministically
-- **Logging** - Console + file output with record counts at each stage
-- **Docstrings** - Google-style documentation throughout
+---
 
-### Quick Start
+## Quick Start
 
-**Prerequisites:**
-
-- Python 3.9+
-- Docker and Docker Compose
-
-**Setup:**
-
-1. Clone and install dependencies
+The documented commands assume a Bash-compatible shell. On Windows, prefer Git Bash or WSL so the Makefile targets and multiline commands run as written.
 
 ```bash
+# Clone and install dependencies
 git clone https://github.com/j-alleva/e2e-de.git
 cd e2e-de
 pip install -r requirements.txt
+
+# Create local configuration
+cp .env.example .env
+
+# Build the ingestion image
+make build
+
+# Initialize Airflow metadata (first run only)
+make airflow-init
+
+# Start Airflow, scheduler, and Postgres
+make airflow-up
+
+# Access Airflow at http://localhost:8080
+# Username: airflow
+# Password: airflow
 ```
 
-2. Configure environment (optional)
+To run the Streamlit dashboard locally:
+
+```bash
+# Copy the template and add your Snowflake connection values
+cp streamlit/.streamlit/secrets.toml.example streamlit/.streamlit/secrets.toml
+
+# Start the dashboard
+make app
+```
+
+Dashboard URL:
+
+- `http://localhost:8501`
+
+To run a single ingestion job outside the Airflow DAG:
+
+```bash
+make ingest RUN_DATE=2026-01-31 LOCATION=Boston
+```
+
+---
+
+## Architecture & Data Flow
+
+The implemented project follows a six-stage ingestion-to-consumption path:
+
+1. **API Extraction (Bronze)** — The Python ingestion job fetches hourly weather data from Open-Meteo, writes raw JSON to the local Bronze layer, and can optionally mirror that partitioned output to S3.
+
+2. **Validation & Normalization (Silver)** — Python validation checks for required top-level keys, parseable timestamps, and duplicate natural keys before Pandas normalization writes cleaned Parquet to the Silver layer.
+
+3. **Distributed Curation (Gold)** — AWS Glue PySpark reads Silver Parquet from S3, renames and standardizes key fields, derives analytics-ready columns, performs a Silver-to-Gold row count check, and writes partitioned Gold Parquet.
+
+4. **Warehouse Load (Snowflake)** — Snowflake reads Gold Parquet through an external stage, loads a transient staging table with `COPY INTO`, and uses `MERGE` statements to upsert into `dim_date`, `dim_location`, and `fact_weather_hourly`.
+
+5. **Analytics Transformation (dbt)** — dbt builds staging views, the `mart_daily_weather_summary` mart, and a semantic layer defined through `metrics.yml` and `metricflow_time_spine.sql`, with mart-level `unique`, `not_null`, and `relationships` tests.
+
+6. **Consumption Layer (Streamlit)** — The dashboard queries the final mart table in Snowflake, renders KPI cards and charts, and caches result sets to reduce repeated warehouse access.
+
+The full cloud path is orchestrated by Airflow using `DockerOperator`, `GlueJobOperator`, and `SnowflakeOperator`, parameterized by the logical execution date `{{ ds }}` for safe reruns and backfills.
+
+---
+
+## Additional Local SQL Workflow
+
+The repository also includes a local PostgreSQL staging and analytics workflow used for star-schema modeling and SQL query practice.
+
+```bash
+# Start local Postgres only
+docker compose up -d postgres
+
+# Create warehouse schema
+make schema
+
+# Produce Silver data and load it into Postgres staging
+make ingest RUN_DATE=2026-01-31 LOCATION=Boston
+make load RUN_DATE=2026-01-31 LOCATION=Boston
+
+# Populate dimensions and facts
+make warehouse
+
+# Run saved analytical queries
+make queries
+```
+
+This local path is separate from the Snowflake/dbt production-style flow, but it remains part of the repo as a useful modeling and SQL analytics module.
+
+---
+
+## Key Engineering Patterns
+
+- **Idempotent Reruns** — Airflow passes `{{ ds }}` into the ingestion and transformation steps, S3 partition paths are deterministic, and Snowflake loads use `MERGE` on business keys so the same logical date can be processed again without duplicating warehouse rows.
+
+- **Layered Data Quality Checks** — Bronze validation runs in Python before normalization, the Glue job performs a Silver-to-Gold row count check, and dbt enforces mart-level `unique`, `not_null`, and `relationships` assertions on Snowflake.
+
+- **Task Isolation** — Airflow runs ingestion and dbt in isolated Docker containers, executes Spark work through AWS Glue, and performs warehouse loading through Snowflake operators.
+
+- **Least-Privilege AWS Access** — The documented IAM policy in [infra.md](infra.md) limits the programmatic user to the project bucket and scoped S3 actions (`PutObject`, `GetObject`, and `ListBucket`).
+
+- **Operational Recoverability** — The pipeline can be rerun for a failed logical date, and Airflow backfill support allows missed dates to be reprocessed without code changes.
+
+---
+
+## Repository Structure
+
+```
+e2e-de/
+├── .github/workflows/
+│   └── ci.yml
+├── airflow/
+│   ├── dags/
+│   │   └── ingestion_dag.py
+│   ├── logs/
+│   └── plugins/
+├── src/pipeline/
+│   ├── ingest/
+│   │   └── ...
+│   ├── io/
+│   │   └── ...
+│   ├── transform/
+│   │   └── pandas_transform.py
+│   ├── config.py
+│   ├── run.py
+│   └── load.py
+├── spark/
+│   └── glue_job.py
+├── dbt/de_dbt/
+│   ├── models/
+│   │   ├── staging/
+│   │   │   ├── sources.yml
+│   │   │   ├── stg_date.sql
+│   │   │   ├── stg_location.sql
+│   │   │   └── stg_weather_hourly.sql
+│   │   └── marts/
+│   │       ├── mart_daily_weather_summary.sql
+│   │       ├── metricflow_time_spine.sql
+│   │       ├── metrics.yml
+│   │       └── schema.yml
+│   ├── dbt_project.yml
+│   └── profiles.yml
+├── warehouse/
+│   └── snowflake/
+│       └── ...
+├── sql/
+│   ├── postgres/
+│   └── queries/
+├── streamlit/
+│   ├── app.py
+│   └── .streamlit/
+│       └── secrets.toml.example
+├── docs/
+│   ├── adr/
+│   │   └── 0001-0006-*.md
+│   ├── assets/
+│   │   └── ...
+│   ├── costs_and_limits.md
+│   ├── production_design.md
+│   └── runbook.md
+├── tests/
+│   ├── test_config.py
+│   └── test_pipeline.py
+├── Dockerfile
+├── docker-compose.yml
+├── Makefile
+├── requirements.txt
+├── .env.example
+├── conftest.py
+└── README.md
+```
+
+---
+
+## Environment Setup
+
+Copy `.env.example` to `.env` and populate the values needed for your workflow:
 
 ```bash
 cp .env.example .env
 ```
 
-3. Run the ingestion pipeline
+Core variables in `.env`:
 
-```bash
-make ingest RUN_DATE=2026-01-31 LOCATION=Boston
-```
+| Variable | Purpose |
+|---|---|
+| `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY` | Programmatic AWS access |
+| `AWS_BUCKET_NAME`, `AWS_REGION` | S3 bucket and region |
+| `HOST_PROJECT_PATH` | Absolute local project path used by Airflow volume mounts |
+| `AIRFLOW_UID` | Local user ID for Docker volume permissions |
+| `SNOWFLAKE_ACCOUNT`, `SNOWFLAKE_USER`, `SNOWFLAKE_PASSWORD` | Snowflake connection settings |
+| `SNOWFLAKE_ROLE`, `SNOWFLAKE_WAREHOUSE`, `SNOWFLAKE_DATABASE`, `SNOWFLAKE_SCHEMA` | Snowflake execution context |
 
-Or without Make:
+Additional local path and API variables are documented in `.env.example` and the runbook.
 
-```bash
-python -m src.pipeline.run --run-date 2026-01-31 --location Boston
-```
-
-**Expected Output:**
-
-Bronze (raw JSON):
-
-```
-data/bronze/source=openmeteo/run_date=2026-01-31/location=Boston/raw.json
-```
-
-Silver (cleaned Parquet):
-
-```
-data/silver/source=openmeteo/run_date=2026-01-31/location=Boston/weather_data.parquet
-```
-
-Logs:
-
-```
-pipeline.log
-```
-
-### Data Lake Structure
-
-```
-data/
-├── bronze/                          # Raw, immutable source data
-│   └── source=openmeteo/
-│       └── run_date=YYYY-MM-DD/
-│           └── location=Boston/
-│               └── raw.json
-│
-└── silver/                          # Cleaned, validated, analysis-ready
-        └── source=openmeteo/
-                └── run_date=YYYY-MM-DD/
-                        └── location=Boston/
-                                └── weather_data.parquet
-```
+For the Streamlit app, copy `streamlit/.streamlit/secrets.toml.example` to `streamlit/.streamlit/secrets.toml` and add the Snowflake connection values expected by Streamlit.
 
 ---
 
-## Block 2: Postgres Staging + SQL Analytics
+## CI Pipeline
 
-Modeled and queried a weather dataset in a Dockerized Postgres warehouse using a star schema with dimension and fact tables, plus 13 analytical queries demonstrating GROUP BY, JOINs, window functions, CTEs, and rolling aggregates.
+The GitHub Actions workflow runs on pushes and pull requests to `main` and currently performs:
 
-### Data Model
+- `ruff check .`
+- `mypy src/ --ignore-missing-imports --explicit-package-bases`
+- `pytest tests/`
+- `dbt deps` and `dbt compile` inside `dbt/de_dbt`
 
-Star schema designed for hourly weather analytics:
+---
 
-| Table | Type | Description |
-|---|---|---|
-| `raw_weather` | Staging | Raw ingested data from silver Parquet (temporary, refreshed per run) |
-| `dim_date` | Dimension | Date attributes (day of week, month, weekend flag) |
-| `dim_location` | Dimension | Location details (city, latitude, longitude) |
-| `fact_weather_hourly` | Fact | Hourly weather measurements joined to dimensions (24 rows/day) |
-
-### Schema Diagram
-
-```mermaid
-erDiagram
-    FACT_WEATHER_HOURLY {
-        int fact_id PK
-        int date_id FK
-        int location_id FK
-        int hour
-        float temperature_2m
-        float precipitation
-        float wind_speed_10m
-        int relative_humidity_2m
-    }
-
-    DIM_LOCATION {
-        int location_id PK
-        string location_name
-        float latitude
-        float longitude
-    }
-
-    DIM_DATE {
-        int date_id PK
-        date date_value
-        int year
-        int month
-        int day
-        boolean is_weekend
-    }
-
-    DIM_LOCATION ||--o{ FACT_WEATHER_HOURLY : "has weather"
-    DIM_DATE ||--o{ FACT_WEATHER_HOURLY : "recorded on"
-```
-### Running the Warehouse Locally
+## Make Commands
 
 ```bash
-# Start Postgres in Docker
-make up
-
-# Create schema (dimensions, facts, staging)
-make schema
-
-# Ingest data and load into raw_weather staging table
-make ingest RUN_DATE=2026-01-31 LOCATION=Boston
-make load RUN_DATE=2026-01-31 LOCATION=Boston
-
-# Populate fact and dimension tables from staging
-make warehouse
-
-# Run all 13 analytical queries
-make queries
-
-# Tear down
+make build
+make airflow-init
+make airflow-up
+make ingest-s3 RUN_DATE=2026-01-31 LOCATION=Boston
+make dbt-build
 make down
-```
-
-### Analytical Queries
-
-13 SQL queries in `sql/queries/` demonstrating a range of SQL techniques. All queries tested and validated in Docker Postgres:
-
-| Query | Description | Techniques |
-|---|---|---|
-| `q1_sample_data.sql` | Sample data inspection | SELECT, LIMIT |
-| `q2_freezing_hours.sql` | Hours below freezing | WHERE, filtering |
-| `q3_high_winds.sql` | High wind events | Conditional filtering |
-| `q4_weekend_weather.sql` | Weekend vs weekday patterns | JOIN, GROUP BY |
-| `q5_avg_temp_by_city.sql` | Average temperature by city | GROUP BY, aggregation |
-| `q6_min_max_temp.sql` | Daily temperature range | MIN, MAX, GROUP BY |
-| `q7_rainy_cities.sql` | Cities ranked by rainfall | GROUP BY, HAVING, ORDER BY |
-| `q8_temp_buckets.sql` | Temperature distribution | CASE, bucketing |
-| `q9_hourly_temp_change.sql` | Hour-over-hour temperature delta | LAG window function |
-| `q10_rolling_avg_temp.sql` | Rolling average temperature | Window frame (ROWS BETWEEN) |
-| `q11_hottest_hour_rank.sql` | Hottest hour ranking per location | RANK, PARTITION BY |
-| `q12_cumulative_rainfall.sql` | Cumulative daily rainfall | SUM window function |
-| `q13_extreme_weather_cte.sql` | Extreme weather event detection | CTE, conditional logic |
-
-### SQL File Structure
-
-```
-sql/
-├── postgres/
-│   ├── 01_create_tables.sql       # Staging + star schema DDL
-│   └── 02_populate_tables.sql     # Fact/dimension population from staging
-└── queries/
-        ├── q1_sample_data.sql
-        ├── q2_freezing_hours.sql
-        ├── ...
-        └── q13_extreme_weather_cte.sql
-```
-
----
-
-## Block 3: Hybrid Cloud Storage (S3)
-
-Extended the local ingestion pipeline to support hybrid cloud storage. Implemented a custom `s3.py` client using `boto3` to push Bronze and Silver artifacts to AWS S3, secured by a custom Least Privilege IAM policy.
-
-### What's Implemented
-
-- **Hybrid I/O** - Pipeline supports optional `--write-s3` flag to mirror local files to the cloud
-- **Least Privilege Security** - Custom IAM policy restricting the programmatic user to specific bucket actions (`PutObject`, `GetObject`) only
-- **Hive Partitioning** - S3 keys mirror the local directory structure (`source=.../run_date=...`) to prepare for Spark querying
-- **Infrastructure as Code** - Documented storage patterns and security policies in `infra.md`
-
-### Running with S3
-
-```bash
-# Ingest and automatically upload to S3
-make ingest-s3 RUN_DATE=2026-02-11 LOCATION=Boston
-```
-### Data Lake Structure
-![S3 Medallion Architecture](docs/assets/s3_lake.png)
-
-## Block 4: Dockerization & CI/CD
-
-Packaged the ingestion pipeline into a reproducible Docker container and implemented strict code hygiene and automated testing via GitHub Actions.
-
-### What's Implemented
-- **Containerization:** Pipeline runs in an isolated Python slim Docker container, eliminating local environment dependencies.
-- **CI/CD Automation:** GitHub Actions workflow (`ci.yml`) runs automatically on every push
-- **Unit Testing:** Deterministic unit tests using `pytest` and mock data to validate schema enforcement, edge cases, and data normalization logic.
-- **Code Hygiene:** Strict linting with `ruff` and static type checking with `mypy` enforced in the CI pipeline.
-- **Secure Credential Injection:** AWS credentials securely passed at runtime via `.env` file mapping, ensuring zero secret leakage in the Docker image.
-
-### Running with Docker
-
-```bash
-docker build -t de-ingest .
-docker run --env-file .env de-ingest --run-date 2026-01-31 --location Boston
-```
-
-## Block 5: Airflow Orchestration
-
-Implemented a local Apache Airflow environment using Docker Compose to orchestrate the daily ingestion pipeline.
-
-### What's Implemented
-- **Isolated Execution (`DockerOperator`):** Decoupled execution by running the ingestion job inside ephemeral Docker containers (`de-ingest`) rather than on the Airflow worker directly, preventing dependency conflicts.
-- **Dynamic Templating:** Utilized Airflow's native Jinja templating (`{{ ds }}`) to dynamically pass the logical execution date to the Python CLI's `--run-date` parameter.
-- **Idempotent Backfilling:** Enabled historical data loads using Airflow's CLI backfill capabilities without altering any underlying code.
-- **Secure Secret Injection:** Used python-dotenv in the DAG to securely load environment variables from .env and inject AWS credentials into the isolated container, bypassing Airflow's Jinja template restrictions.
-
-### Running Airflow Locally
-
-**1. Build the ingestion image (Run anytime you update python code):**
-`make build`
-
-**2. Initialize the Airflow database and user (Run once on first setup, or after wiping Docker volumes):**
-`make airflow-init`
-
-**3. Start the Airflow webserver, scheduler, and Postgres:**
-`make airflow-up`
-
-Access the UI at `http://localhost:8080` (Username: `airflow`, Password: `airflow`).
-
-### Local Airflow DAG execution
-![Airflow DAG Execution](docs/assets/airflow_dag.png)
-
-## Block 6: AWS Glue & PySpark Transformations
-
-Transitioned data transformations from local execution to a distributed cloud environment using AWS Glue. Built a serverless PySpark ETL job to read from the S3 Silver layer, curate the data, and write to a finalized S3 Gold layer.
-
-### What's Implemented
-- **Serverless PySpark ETL:** Developed `glue_job.py` to handle large-scale data curation, enforcing schema consistency and generating our final analysis ready Parquet datasets.
-- **Dynamic Partition Overwrites:** Configured Spark (`spark.sql.sources.partitionOverwriteMode`) to safely overwrite only the current `run_date` partitions without wiping the entire S3 Gold layer, enabling strict idempotency and backfill capability.
-- **Data Quality Validation:** Integrated row count validation logic directly into the Spark script to guarantee 1:1 record matching between Silver inputs and Gold outputs, writing custom logging to AWS CloudWatch.
-
-### Aws Glue Job Success
-![AWS Glue Job Success](docs/assets/glue_runs.png)
-
-## Block 7: Snowflake Data Warehouse (ELT)
-
-Migrated the final analytical storage layer to Snowflake. Established a secure cloud handshake with AWS and built an idempotent ELT pipeline to load curated data into a dimensional star schema.
-
-### What's Implemented
-- **Cloud Security:** Configured a Snowflake `STORAGE INTEGRATION` with an AWS IAM Role via a custom trust policy.
-- **External Staging:** Created an external stage pointing directly to the S3 Gold layer, decoupling storage from compute.
-- **Dynamic Metadata Parsing:** Engineered around PySpark's Hive-partitioning behavior by dynamically extracting `location` and `run_date` from `METADATA$FILENAME` during the `COPY INTO` operation.
-- **Idempotent Upserts:** Developed robust `MERGE INTO` SQL logic to upsert transient staging data into `dim_date`, `dim_location`, and `fact_weather_hourly` tables, guaranteeing zero duplicate rows on pipeline reruns.
-
-### Snowflake Star Schema Query
-![Snowflake Star Schema Query](docs/assets/snowflake_query.png)
-
-## Block 8: dbt (Data Build Tool) Analytics Engineering
-
-Implemented a modular data transformation layer on top of Snowflake using dbt, converting raw staging tables into tested, documented, business-ready data marts. 
-
-### What's Implemented
-- **Modular Data Modeling:** Abstracted raw Snowflake tables using `source()` macros and built a clean DAG flowing from staging views into a final aggregated `mart_daily_weather_summary` table.
-- **Automated Data Quality Tests:** Defined strict YAML assertions (`unique`, `not_null`, and `relationships`) to mathematically guarantee primary key integrity and referential foreign-key consistency before data hits the BI layer.
-- **Auto-Generated Documentation:** Leveraged dbt to automatically parse SQL descriptions and generate an interactive data dictionary and Lineage Graph (DAG) for business stakeholders.
-- **CI Integration:** Upgraded the GitHub Actions pipeline to run `dbt compile` on every push, ensuring all SQL syntax and YAML configurations are valid before merging to the `main` branch.
-
-### dbt Lineage Graph (DAG)
-![dbt DAG](docs/assets/dbt_dag.png)
-
-## Block 9: End-to-End Pipeline Orchestration & Idempotency
-
-Synthesized all standalone components into a single, automated Apache Airflow DAG (`weather_end_to_end_pipeline`), orchestrating the entire lifecycle from API extraction to business-ready dbt reporting. 
-
-### What's Implemented
-- **Multi-Operator Orchestration:** Chained tasks using distinct execution strategies: `DockerOperator` for isolated Python ingestion and dbt execution, `GlueJobOperator` for serverless Spark, and `SnowflakeOperator` for cloud data warehousing.
-- **Strict Idempotency Validation:** Engineered the pipeline to handle failure recovery safely. "Clear and Rerun" tests prove that S3 partition overwrites and Snowflake `MERGE` statements gracefully update existing rows without duplicating data.
-
-### Airflow End-to-End Success
-![Airflow End-to-End Success](docs/assets/airflow_e2e_success.png)
-
-### Snowflake Data Mart
-![Snowflake Final Mart](docs/assets/snowflake_final_mart.png)
-
-## Block 10: Consumption Layer (Streamlit)
-
-The final layer of the project is an interactive **Streamlit** web application that provides stakeholder facing analytics, proving the downstream value of the data pipeline.
-
-### What's Implemented
-- **Direct Snowflake Integration:** Connects to the data warehouse using Streamlit's native connection protocols.
-- **Governed Metrics:** Queries are strictly limited to the final `mart_daily_weather_summary` dbt mart, ensuring stakeholders only see tested, documented, and approved metrics.
-- **Performance Caching:** Implemented `@st.cache_data` to cache query results in memory. This allows instant UI filtering (by location or date) without retriggering Snowflake compute, significantly reducing cloud costs.
-- **Dynamic Visualizations:** Calculates 4 KPIs and renders multi-dimensional time-series charts for temperature, precipitation, wind, and humidity.
-
-### Dashboard View
-![Streamlit Dashboard](docs/assets/streamlit_dashboard.png)
-
-### Running the Dashboard Locally
-
-```bash
-# Ensure your Snowflake credentials are in streamlit/.streamlit/secrets.toml
+make airflow-down
 make app
 ```
 
-## Project Structure (Current)
-
-```
-e2e-de/
-├── .github/workflows/
-│   └── ci.yml                     # GitHub Actions CI/CD pipeline
-├── airflow/
-│   ├── dags/
-│   │   └── ingestion_dag.py       # Airflow DAG for daily ingestion
-│   ├── logs/                      # Airflow task execution logs
-│   └── plugins/                   # Custom Airflow plugins (placeholder)
-├── src/pipeline/
-│   ├── config.py                  # Environment config + path generation
-│   ├── run.py                     # CLI entry point (ingestion)
-│   ├── load.py                    # Silver Parquet --> Postgres loader
-│   ├── ingest/
-│   │   ├── fetch.py               # API extraction --> bronze
-│   │   ├── validate.py            # Schema + data quality checks
-│   │   └── normalize.py           # Bronze --> silver transformation
-│   ├── io/
-│   │   ├── local.py               # Local filesystem I/O
-│   │   └── s3.py                  # AWS S3 I/O wrapper (boto3)
-│   └── transform/
-│       └── pandas_transform.py    # Python-based transformations
-├── docs/adr/                      # ADR files 
-├── tests/
-│   ├── test_config.py             # Pytest unit tests (config)
-│   └── test_pipeline.py           # Pytest unit tests (validation & normalization)
-├── sql/
-│   ├── postgres/                  # DDL and population scripts
-│   └── queries/                   # Analytical SQL queries
-├── spark/
-│   └── glue_job.py                # PySpark ETL script for AWS Glue transformations
-├── dbt/de_dbt/                    # dbt transformation project
-│   ├── models/                    # SQL transformation models
-│   │   ├── staging/               # Source definitions and lightweight stg_ views
-│   │   └── marts/                 # Aggregated business logic (daily weather summaries)
-│   ├── dbt_project.yml            # Main dbt project configuration
-│   └── profiles.yml               # Snowflake connection settings
-├── warehouse/
-│   └── snowflake/                 # Snowflake DDL, Stages, and ELT load scripts
-│       ├── 00_setup.sql           # Provision warehouse, db, schema, storage integration
-│       ├── 01_file_formats.sql    # Define Parquet file format
-│       ├── 02_stages.sql          # Define external S3 stage
-│       ├── 03_copy_into.sql       # Idempotent COPY INTO + star schema MERGEs
-│       └── 04_validation.sql      # Row count, null, and analytical join validation
-├── streamlit/                     # Stakeholder consumption layer
-│   ├── app.py                     # Streamlit dashboard logic
-│   └── .streamlit/
-│       └── secrets.toml.example   # Template for Snowflake credentials
-├── Dockerfile                     # Python containerization blueprint
-├── conftest.py                    # Pytest configuration file
-├── docker-compose.yml             # Airflow & Postgres service definition
-├── infra.md                       # Cloud architecture & security docs
-├── Makefile                       # Single-command developer experience
-├── requirements.txt               # Python dependencies
-└── .env.example                   # Configuration template
-```
-
-### Key Design Patterns
-
-- **Idempotency:** Re-running the same run_date overwrites outputs (S3 writes will use deterministic keys; Snowflake will use staging + MERGE)
-- **Partitioning:** All outputs partitioned by `run_date` for backfill support
-- **Staged Ingestion:** Raw data flows through staging before analytics tables
-- **Validation:** Schema compliance and data quality checks before transformation
-- **Natural Key:** `(location, timestamp)` used for duplicate detection
-- **I/O Abstraction:** Storage backends abstracted via `src/pipeline/io/` to avoid hardcoded paths
-
-### Environment Variables
-
-See `.env.example` for the full configuration template.
-
-| Variable | Default | Description |
-|---|---|---|
-| `LOCAL_BRONZE_PATH` | `./data/bronze` | Bronze layer storage path |
-| `LOCAL_SILVER_PATH` | `./data/silver` | Silver layer storage path |
-| `LOCAL_GOLD_PATH` | `./data/gold` | Gold layer storage path (placeholder) |
-| `OPEN_METEO_URL_TEMPLATE` | (see .env.example) | API endpoint template |
-| `AWS_ACCESS_KEY_ID` | (user-supplied) | Your AWS Access Key |
-| `AWS_SECRET_ACCESS_KEY` | (user-supplied) | AWS programmatic user secret |
-| `AWS_BUCKET_NAME` | (user-supplied) | S3 bucket name |
-| `AWS_REGION` | (user-supplied) | AWS region (e.g., us-east-2) |
-| `AIRFLOW_UID` | (user-supplied) | Local user ID for Airflow |
-| `HOST_PROJECT_PATH` | (user-supplied) | Local project path directory for Airflow access |
-
-### Make Commands
-
-```bash
-make help                                    # Show all available commands
-make up                                      # Start Docker services (Postgres)
-make down                                    # Stop Docker services
-make build                                   # Build the de-ingest Docker image
-make airflow-init                            # Initialize Airflow metadata database
-make airflow-up                              # Start Airflow and Postgres containers
-make airflow-down                            # Spin down Airflow containers and remove volumes
-make ingest RUN_DATE=2026-01-31 LOCATION=Boston     # Run Dockerized Python ingestion pipeline
-make ingest-s3 RUN_DATE=2026-01-31 LOCATION=Boston  # Run Dockerized ingestion + upload to S3
-make schema                                  # Create Postgres schema (staging + dimensions + facts)
-make load RUN_DATE=2026-01-31 LOCATION=Boston       # Load silver Parquet into Postgres staging
-make warehouse                               # Populate fact/dimension tables from staging
-make queries                                 # Run all 13 analytical queries
-make clean                                   # Remove local data lake files
-```
+For the full operator command set, see the Makefile and [docs/runbook.md](docs/runbook.md).
 
 ---
 
-## Troubleshooting
+## License
 
-**Problem:** `ModuleNotFoundError: No module named 'src'`
-**Solution:** Run from project root using `python -m src.pipeline.run ...`
-
-**Problem:** `FileNotFoundError` when running pipeline
-**Solution:** The pipeline creates directories automatically. Ensure you are in the project root.
-
-**Problem:** API request fails
-**Solution:** Check internet connection. Open-Meteo is public and requires no API key.
-
-**Problem:** Postgres connection refused
-**Solution:** Ensure Docker is running and the container is up: `make up`
-
----
-
-## Roadmap
-
-- [x] **Block 1** - Python ingestion + cleaning (local bronze/silver data lake)
-- [x] **Block 2** - SQL foundations + star schema modeling (Postgres in Docker)
-- [x] **Block 3** - AWS S3 data lake layout with IAM + partitioned uploads
-- [x] **Block 4** - Dockerize ingestion + GitHub Actions CI (lint, test, type hint)
-- [x] **Block 5** - Airflow orchestration (DAG with parameterized run_date, retries, backfills)
-- [x] **Block 6** - Spark transformations via AWS Glue (silver to gold, partitioned Parquet)
-- [x] **Block 7** - Snowflake warehouse load (stage + COPY INTO + MERGE for idempotency)
-- [x] **Block 8** - dbt transformations, tests, and documentation on Snowflake
-- [x] **Block 9** - Semantic metrics layer (dbt) + end-to-end Airflow DAG
-- [x] **Block 10** - Streamlit dashboard consuming dbt marts/metrics
-
----
-
-## Status
-
-| Milestone | Status |
-|---|---|
-| Block 1: Python Ingestion | Complete |
-| Block 2: Postgres + SQL | Complete |
-| Block 3: S3 + IAM Security | Complete |
-| Block 4: Docker & CI/CD | Complete |
-| Block 5: Airflow Orchestration | Complete |
-| Block 6: AWS Glue (PySpark) | Complete |
-| Block 7: Snowflake warehouse load (stage + COPY INTO + MERGE for idempotency) | Complete |
-| Block 8: dbt Analytics Engineering | Complete |
-| Block 9: End to End Airflow Orchestration | Complete |
-| Block 10: Consumption Layer (Streamlit) | Complete |
-
-**Last Updated:** April 2026
-
-**License:** MIT
+MIT
